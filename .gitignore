@@ -2,3 +2,7 @@ tensorboard/*
 saved_rl_models/*
 
 *.pyc
+
+.vscode/
+.history/
+*.code-workspace
