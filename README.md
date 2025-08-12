@@ -6,8 +6,10 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
 
 ```
 .
+├── eval.py
 ├── main.py
 ├── requirements.txt
+├── train.py
 ├── envs/
 │   ├── callbacks.py
 │   ├── carla_env.py
@@ -23,6 +25,7 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
 │   │       ├── lanelet_data_extractor.py
 │   │       ├── lanelet_traffic_rules.py
 │   │       └── README.md
+├── media/
 ├── models/
 │   ├── __init__.py
 │   ├── preprocess.py
@@ -39,7 +42,8 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
 
 ### Prerequisites
 
-- Python 3.7+
+- Python 3.7
+- CARLA 0.9.14 (Download the RSS version from [here](https://github.com/carla-simulator/carla/releases/tag/0.9.14/))
 - See `requirements.txt` for Python dependencies.
 
 ### Installation
@@ -52,10 +56,29 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
 
 ### Running the RL Pipeline
 
-Start training or evaluation by running:
-```bash
-python main.py
-```
+To run the project, follow these steps:
+
+1. **Start the CARLA Simulator**  
+    Open a terminal and run:
+    ```bash
+    $CARLA_ROOT/CarlaUE4.sh -RenderOffScreen -quality-level=Low
+    ```
+    - `-RenderOffScreen`: Runs CARLA without rendering to a display (useful for headless servers).
+    - `-quality-level=Low`: Sets the graphics quality to low for better performance.
+
+2. **Train or Evaluate the RL Agent**  
+    In a separate terminal, use the following commands:
+    - To train a model:
+      ```bash
+      python train.py
+      ```
+    - To evaluate a trained model:
+      ```bash
+      python eval.py
+      ```
+
+3. **Configuration**  
+    Adjust environment and training settings in `envs/configs/config.yaml` as needed.
 
 ## Features
 
@@ -66,16 +89,19 @@ python main.py
 - **Logging:** Training logs and results are saved in `saved_rl_models/`.
 
 ## Directory Overview
-
-- `main.py`: Entry point for training/evaluation.
+- `train.py`: Main script to train the reinforcement learning agent in the CARLA environment.
+- `eval.py`: Script to evaluate a trained RL agent and report performance metrics.
 - `envs/`: Environment wrappers, configs, and observation modules.
 - `models/`: Model definitions and utilities.
 - `saved_rl_models/`: Logs and saved model results.
 
-## License
+## Results
 
-Specify your license here.
+- While creating the 
 
-## Acknowledgements
+## TODOs
 
-- [CARLA Simulator](https://carla.org/)
+- Update Action space (currently a dummy action space is being used)
+- Update configs
+- Add Welf's vis as rendering
+- ...
