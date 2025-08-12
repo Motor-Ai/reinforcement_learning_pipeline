@@ -1,6 +1,6 @@
 # configs/config.yaml
 
-N_VEHICLES: 30
+N_VEHICLES: 1
 SCENE_DURATION: 30  # seconds
 SLOWDOWN_PERCENTAGE: 10
 EGO_AUTOPILOT: False
@@ -12,9 +12,9 @@ USE_CUSTOM_MAP: False
 NUM_ACTIONS: 3
 N_ACTION_PER_MANEUVER: 5
 SHOW_ROUTE: True
-TRAIN: False
-TEST: True
-LOAD_MODEL: True
+TRAIN: True
+TEST: False
+LOAD_MODEL: False
 SAVED_MODEL_PATH: "saved_rl_models/1.1/model_55000.zip"
 display_width: 1080
 display_height: 720
