@@ -8,6 +8,7 @@ from gym import spaces
 import os
 import sys
 import yaml  # Import YAML parser
+from typing import Optional, Tuple
 
 # Expand the CARLA_ROOT environment variable correctly:
 carla_root = os.environ.get("CARLA_ROOT")
@@ -23,7 +24,9 @@ from agents.navigation.global_route_planner import GlobalRoutePlanner
 from envs.observation.vector_BEV_observer import Vector_BEV_observer
 from envs.carla_env_render import MatplotlibAnimationRenderer
 from models.dipp_predictor_py.dipp_carla import Predictor
-from models.preprocess import Preprocessor
+from models.preprocess import Preprocessor, Observation
+
+# pyright: reportAttributeAccessIssue=none
 
 # Load configurations from YAML
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "configs/config.yaml")
@@ -45,6 +48,7 @@ SHOW_ROUTE = config["SHOW_ROUTE"]
 PREPROCESS_OBSERVATION = config["PREPROCESS_OBSERVATION"]
 display_width = config["display_width"]
 display_height = config["display_height"]
+
 
 class CarlaGymEnv(gym.Env):
     """
@@ -76,9 +80,12 @@ class CarlaGymEnv(gym.Env):
         self.SHOW_ROUTE = SHOW_ROUTE
         self.sim_time = 0.0
         self.map_path = '/home/ratul/Downloads/Tegel_map_for_Decision_1302.xodr'
-
-        if PREPROCESS_OBSERVATION:
-            self.preprocessor = Preprocessor()
+        self.prev_distance: Optional[float] = None 
+        self.matplotlib_renderer: Optional[MatplotlibAnimationRenderer] = None
+        self.preprocess_observation = PREPROCESS_OBSERVATION
+        self.preprocessor = Preprocessor()
+        self.last_obs: Optional[Observation] = None
+        self.global_route: Optional[np.ndarray] = None
         
         # Pygame setup for camera display (only if rendering enabled)
         if self.render_enabled:
@@ -215,7 +222,7 @@ class CarlaGymEnv(gym.Env):
                     pass
         self.actor_list = []
 
-    def reset(self):
+    def reset(self) -> Observation:
         """
         Reset the simulation: clean up previous actors, spawn the ego vehicle,
         attach sensors (including collision sensor and, if enabled, camera), spawn 
@@ -226,7 +233,7 @@ class CarlaGymEnv(gym.Env):
         self.sim_time = 0.0
         self.collision_detected = False
 
-        if PREPROCESS_OBSERVATION:
+        if self.preprocess_observation:
             self.preprocessor = Preprocessor()
 
         # Initialize BEV observer (your original code uses FUTURE_LEN=1)
@@ -309,12 +316,12 @@ class CarlaGymEnv(gym.Env):
 
         self.global_route = None
         self.global_route_ego_frame = torch.zeros(size=(self.bev_info.MAX_LANE_LEN, 3))
-        observation = {"ego": ego_obs, 
+        observation: Observation = {"ego": ego_obs, 
                         "neighbors": neighbors_obs, 
                         "map": map_obs, 
                         "global_route": self.global_route_ego_frame}  # New key with the global route.
         
-        if PREPROCESS_OBSERVATION:
+        if self.preprocess_observation:
             observation = self.preprocessor.preprocess_observation(observation)
         
         return observation
@@ -384,7 +391,7 @@ class CarlaGymEnv(gym.Env):
             global_route_ego_frame = np.pad(global_route_ego_frame, ((0, padd_len), (0, 0)))
         return global_route_ego_frame, global_route_ego_frame_no_padding
 
-    def step(self, action):
+    def step(self, action) -> Tuple[Observation, float, bool, dict]:
         # Compute the global route only once.
         if self.global_route is None and self.ego_vehicle.get_transform().location.x != 0.0:
             self.global_route = self._generate_global_route()
@@ -488,12 +495,12 @@ class CarlaGymEnv(gym.Env):
         else:
             ego_obs, neighbors_obs, map_obs = None, None, None
 
-        observation = {"ego": ego_obs, 
+        observation: Observation = {"ego": ego_obs, 
                        "neighbors": neighbors_obs, 
                        "map": map_obs, 
                        "global_route": self.global_route_ego_frame}
         
-        if PREPROCESS_OBSERVATION:
+        if self.preprocess_observation:
             observation = self.preprocessor.preprocess_observation(observation)
         
         self.last_obs = observation  # Save the latest observation for rendering
@@ -578,7 +585,7 @@ class CarlaGymEnv(gym.Env):
         step_penalty = -0.01 * distance_to_goal
 
         # Reduced progress-based reward
-        if not hasattr(self, "prev_distance"):
+        if self.prev_distance is None:
             self.prev_distance = distance_to_goal  # Initialize on first call
         progress_reward = 1.0 * (self.prev_distance - distance_to_goal)
         self.prev_distance = distance_to_goal  # Update for next step
@@ -589,14 +596,14 @@ class CarlaGymEnv(gym.Env):
 
         if goal_reached:
             progress_reward += 50.0  # Large reward for reaching the goal
-        if goal_reached and self.sim_time >= self.SCENE_DURATION:
+        if goal_reached and self.sim_time >= self.SCENE_DURATION: #TODO: intentional?
             progress_reward += 50.0  # Large reward for reaching the goal
             return progress_reward, True
         elif self.sim_time >= self.SCENE_DURATION:  
             return -5.0, True  # Apply penalty ONLY if goal was NOT reached
 
         # Check for collision penalty
-        if self.collision_detected:
+        if self.collision_detected: #TODO: add time penalty?
             return -50.0, True  # Ends episode with collision penalty
 
         # The episode should not end when the goal is reached
@@ -634,13 +641,13 @@ class CarlaGymEnv(gym.Env):
 
         return distance_to_goal
 
-    def render(self, mode="human"):
+    def render(self, mode: str="human"):
         # Create the renderer if it doesn't already exist.
-        if not hasattr(self, 'matplotlib_renderer'):
+        if self.matplotlib_renderer is None:
             self.matplotlib_renderer = MatplotlibAnimationRenderer()
 
         # Use the stored observation data (if available) to update the renderer.
-        if hasattr(self, 'last_obs') and self.last_obs is not None:
+        if self.last_obs is not None:
             ego_obs = self.last_obs["ego"]
             neighbors_obs = self.last_obs["neighbors"]
             map_obs = self.last_obs["map"]

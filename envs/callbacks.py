@@ -1,7 +1,9 @@
 import os
 import numpy as np
+from typing import Optional
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard.writer import SummaryWriter
+from stable_baselines3.common.vec_env import VecNormalize
 
 class SaveBestAndManageCallback(BaseCallback):
     """
@@ -15,7 +17,7 @@ class SaveBestAndManageCallback(BaseCallback):
       - Logs action frequency distributions to TensorBoard every `save_freq` steps.
     """
 
-    def __init__(self, eval_env, save_freq, save_path, vec_env, n_eval_episodes=5, verbose=1):
+    def __init__(self, eval_env, save_freq, save_path, vec_env: VecNormalize, n_eval_episodes: int=5, verbose: int=1):
         super().__init__(verbose)
         self.save_freq = save_freq
         self.save_path = save_path
@@ -26,7 +28,7 @@ class SaveBestAndManageCallback(BaseCallback):
         self.action_buffer_1 = []
         self.episode_rewards = []
         self.episode_lengths = []  # Track episode lengths
-        self.writer = None
+        self.writer: Optional[SummaryWriter] = None
 
         # Create an evaluation callback for saving the best model
         self.eval_callback = EvalCallback(

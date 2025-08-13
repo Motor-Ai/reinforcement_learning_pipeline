@@ -19,7 +19,7 @@ from time import sleep
 # PATH = os.path.dirname(os.path.realpath(__file__)).split("train")[0]
 # sys.path.append(PATH)
 
-from carla import ad
+# from carla import ad
 from envs.observation.decision_traffic_rules.feature_indices import agent_feat_id
 from envs.observation.decision_traffic_rules.traffic_sign_db import traffic_feat_idx, regulatory_ts_encoding
 # from srunner.scenariomanager.carla_data_provider import CarlaDataProvider

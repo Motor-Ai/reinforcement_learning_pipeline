@@ -1,5 +1,6 @@
 tensorboard/*
 saved_rl_models/*
+.venv/*
 
 *.pyc
 

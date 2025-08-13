@@ -1,7 +1,16 @@
 import numpy as np
+from typing import Any
+from typing_extensions import TypedDict
 
 from envs.observation.decision_traffic_rules.feature_indices import agent_feat_id
 from envs.observation.decision_traffic_rules.traffic_sign_db import traffic_feat_idx
+
+
+class Observation(TypedDict):  #TODO: set types for the keys
+    ego: Any
+    neighbors: Any
+    map: Any
+    global_route: Any
 
 class Preprocessor:
     def __init__(self):
@@ -26,23 +35,23 @@ class Preprocessor:
         self.R_min = r_min
         self.R_max = r_max
         
-    def preprocess_observation(self, observation):
+    def preprocess_observation(self, observation: Observation) -> Observation:
         self.observations_before_preprocessing = observation
         # remove unnecessary attributes
         ego_data = observation.get('ego')[..., self.ego_attr_keep]
         neighbors_data = observation.get('neighbors')[..., self.ego_attr_keep] # keep the same attributes as ego
         map_data = observation.get('map')[..., self.map_attr_keep]
 
-        observation = {
+        processed_observation: Observation = {
             'ego': ego_data,
             'neighbors': neighbors_data,
             'map': map_data,
             'global_route': observation.get('global_route')
         }
 
-        # observation = self.normalize(observation)
+        # processed_observation = self.normalize(processed_observation)
 
-        return observation
+        return processed_observation
 
     def preprocess_action(self, action):
         # Add your action preprocessing logic here
@@ -53,7 +62,7 @@ class Preprocessor:
         reward = 2 * (reward - self.R_min) / (self.R_max - self.R_min) - 1
         return reward
 
-    def normalize(self, observation):
+    def normalize(self, observation: Observation) -> Observation:
         for key in observation:
             # Normalize the dimensions of the observation
             if key == 'ego' or key == 'neighbors':
