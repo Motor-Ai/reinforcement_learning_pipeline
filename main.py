@@ -1,7 +1,7 @@
 import os
 import yaml
 from envs.carla_env import CarlaGymEnv
-from envs.callbacks import SaveBestAndManageCallback
+from envs.callbacks import SaveBestlCallback, LoggerCallback
 from envs.carla_env_render import MatplotlibAnimationRenderer
 from stable_baselines3 import A2C
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
@@ -56,12 +56,22 @@ if __name__ == '__main__':
             save_dir = SAVE_PATH
             os.makedirs(save_dir, exist_ok=True)
 
-            # Create the custom callback: save a checkpoint every 1,000 timesteps.
-            callback = SaveBestAndManageCallback(eval_env=eval_env, save_freq=1000, save_path=save_dir, vec_env=env, n_eval_episodes=5, verbose=1)
-
+                # Create the custom callback: save a checkpoint every 1,000 timesteps.
+            checkpoint_callback = SaveBestlCallback(
+                eval_env=eval_env,
+                save_freq=1000,
+                save_path=save_dir,
+                vec_env=env,
+                n_eval_episodes=200,
+                verbose=1
+            )
+            logging_callback = LoggerCallback(
+                save_freq=1000,
+                verbose=1
+            )
             # Train A2C model
             model = A2C("MultiInputPolicy", env, verbose=1, tensorboard_log="./tensorboard/")
-            model.learn(total_timesteps=50_000, callback=callback)
+            model.learn(total_timesteps=50_000, callback=[checkpoint_callback, logging_callback])
 
         if TEST:
             # Load VecNormalize statistics if available
