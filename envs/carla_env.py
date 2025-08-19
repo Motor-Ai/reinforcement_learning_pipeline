@@ -1,10 +1,10 @@
-import carla
+import carla # pylint: disable=no-member
 import random
 import pygame
 import torch
 import numpy as np
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 import os
 import sys
 import yaml  # Import YAML parser
@@ -86,10 +86,11 @@ class CarlaGymEnv(gym.Env):
         self.preprocessor = Preprocessor()
         self.last_obs: Optional[Observation] = None
         self.global_route: Optional[np.ndarray] = None
+        self.ego_vehicle: Optional[carla.Actor]= None
         
         # Pygame setup for camera display (only if rendering enabled)
         if self.render_enabled:
-            pygame.init()
+            pygame.init()  # pylint: disable=no-member
             self.screen = pygame.display.set_mode((display_width, display_height))
             pygame.display.set_caption("Carla Gym Environment")
         self.display_width = display_width
@@ -170,7 +171,7 @@ class CarlaGymEnv(gym.Env):
         # Call reset to start the simulation.
         self.reset()
 
-    def seed(self, seed=None):
+    def seed(self, seed: Optional[float]=None):
         """
         Set the random seed for Python, NumPy, and Torch for reproducibility.
         Returns a list with the seed used.
@@ -332,6 +333,8 @@ class CarlaGymEnv(gym.Env):
         Returns:
             A numpy array of shape (N, 3) with columns [x, y, relative_yaw] in the ego coordinate frame.
         """
+        # assert ego_vehicle is Actor with an assertion
+        assert isinstance(self.ego_vehicle, carla.Actor), "Ego vehicle is not an Actor instance."
         # Get the ego vehicle's current location.
         start_location = self.ego_vehicle.get_transform().location
 
@@ -358,6 +361,8 @@ class CarlaGymEnv(gym.Env):
         return self.global_route
 
     def _transform_to_ego_frame(self):
+        # assert ego_vehicle is Actor with an assertion
+        assert isinstance(self.ego_vehicle, carla.Actor), "Ego vehicle is not an Actor instance."
         # Now, convert the global route into the ego frame.
         ego_transform = self.ego_vehicle.get_transform()
         ego_location = ego_transform.location
@@ -594,9 +599,10 @@ class CarlaGymEnv(gym.Env):
         goal_threshold = 0.5  # meters
         goal_reached = distance_to_goal < goal_threshold
 
+        #TODO: ask what reward func should look like, then implement. set done instead of returning bool
         if goal_reached:
             progress_reward += 50.0  # Large reward for reaching the goal
-        if goal_reached and self.sim_time >= self.SCENE_DURATION: #TODO: intentional?
+        if goal_reached and self.sim_time >= self.SCENE_DURATION: 
             progress_reward += 50.0  # Large reward for reaching the goal
             return progress_reward, True
         elif self.sim_time >= self.SCENE_DURATION:  
