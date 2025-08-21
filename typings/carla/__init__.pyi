@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 import numpy as np
 
 import command
 
 class Actor:
 	"""
-	CARLA defines actors as anything that plays a role in the simulation or can be moved around. That includes: pedestrians, vehicles, sensors and traffic signs (considering traffic lights as part of these). Actors are spawned in the simulation by carla.World and they need for a carla.ActorBlueprint to be created. These blueprints belong into a library provided by CARLA, find more about them [here](bp_library.md).
+	CARLA defines actors as anything that plays a role in the simulation or can be moved around. 
+	That includes: pedestrians, vehicles, sensors and traffic signs (considering traffic lights as part of these). 
+	Actors are spawned in the simulation by carla.World and they need for a carla.ActorBlueprint to be created. 
+	These blueprints belong into a library provided by CARLA, find more about them [here](bp_library.md).
 	"""
 
 	attributes: dict
@@ -1321,7 +1324,10 @@ import command
 
 class Client:
 	"""
-	The Client connects CARLA to the server which runs the simulation. Both server and client contain a CARLA library (libcarla) with some differences that allow communication between them. Many clients can be created and each of these will connect to the RPC server inside the simulation to send commands. The simulation runs server-side. Once the connection is established, the client will only receive data retrieved from the simulation. Walkers are the exception. The client is in charge of managing pedestrians so, if you are running a simulation with multiple clients, some issues may arise. For example, if you spawn walkers through different clients, collisions may happen, as each client is only aware of the ones it is in charge of.
+	The Client connects CARLA to the server which runs the simulation. Both server and client contain a CARLA library (libcarla) with some differences that allow communication between them. Many clients can be created and each of these will connect to the RPC server inside the simulation to send commands. 
+	The simulation runs server-side. Once the connection is established, the client will only receive data retrieved from the simulation. Walkers are the exception. 
+	The client is in charge of managing pedestrians so, if you are running a simulation with multiple clients, some issues may arise. For example, if you spawn 
+	walkers through different clients, collisions may happen, as each client is only aware of the ones it is in charge of.
 
   The client also has a recording feature that saves all the information of a simulation while running it. This allows the server to replay it at will to obtain information and experiment with it. [Here](adv_recorder.md) is some information about how to use this recorder.
 	"""
@@ -1358,7 +1364,7 @@ class Client:
 		"""
 		...
 
-	def generate_opendrive_world(self, opendrive: str, parameters: OpendriveGenerationParameters = (2.0, 50.0, 1.0, 0.6, true, true), reset_settings: bool = True):
+	def generate_opendrive_world(self, opendrive: str, parameters: OpendriveGenerationParameters = (2.0, 50.0, 1.0, 0.6, True, True), reset_settings: bool = True):
 		"""
 		Loads a new world with a basic 3D topology generated from the content of an OpenDRIVE file. This content is passed as a `string` parameter. It is similar to `client.load_world(map_name)` but allows for custom OpenDRIVE maps in server side. Cars can drive around the map, but there are no graphics besides the road and sidewalks.
 
@@ -1902,26 +1908,29 @@ class OpendriveGenerationParameters:
 	This class defines the parameters used when generating a world using an OpenDRIVE file.
 	"""
 
-	vertex_distance: float
+	vertex_distance: float = 2.0
 	"""Distance between vertices of the mesh generated. __Default is `2.0`__."""
 
-	max_road_length: float
+	max_road_length: float = 50.0
 	"""Max road length for a single mesh portion. The mesh of the map is divided into portions, in order to avoid propagating issues. __Default is `50.0`__."""
 
-	wall_height: float
+	wall_height: float = 1.0
 	"""Height of walls created on the boundaries of the road. These prevent vehicles from falling off the road. __Default is `1.0`__."""
 
-	additional_width: float
+	additional_width: float = 0.6
 	"""Additional with applied junction lanes. Complex situations tend to occur at junctions, and a little increase can prevent vehicles from falling off the road.  __Default is `0.6`__."""
 
-	smooth_junctions: bool
+	smooth_junctions: bool = True
 	"""If __True__, the mesh at junctions will be smoothed to prevent issues where roads blocked other roads. __Default is `True`__."""
 
-	enable_mesh_visibility: bool
+	enable_mesh_visibility: bool = True
 	"""If __True__, the road mesh will be rendered. Setting this to __False__ should reduce the rendering overhead.  __Default is `True`__."""
 
-	enable_pedestrian_navigation: bool
+	enable_pedestrian_navigation: bool = True
 	"""If __True__, Pedestrian navigation will be enabled using Recast tool. For very large maps it is recomended to disable this option. __Default is `True`__."""
+
+	def __init__(self, vertex_distance: float = 2.0, max_road_length: float = 50.0, wall_height: float = 1.0, additional_width: float = 0.6, smooth_junctions: bool = True, enable_mesh_visibility: bool = True, enable_pedestrian_navigation: bool = True):
+		...
 
 
 
@@ -2954,7 +2963,7 @@ class Transform:
 	rotation: Rotation
 	"""Describes a rotation for an object according to Unreal Engine's axis system."""
 
-	def __init__(self, location: Location, rotation: Rotation):
+	def __init__(self, location: Optional[Location] = None, rotation: Optional[Rotation] = None):
 		"""
 
 

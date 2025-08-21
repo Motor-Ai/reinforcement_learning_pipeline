@@ -42,8 +42,8 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
 
 ### Prerequisites
 
-- Python 3.7
-- CARLA 0.9.14 (Download the RSS version from [here](https://github.com/carla-simulator/carla/releases/tag/0.9.14/))
+- Python 3.10 (and higher?)
+- CARLA 0.9.15 (Download from [here](https://github.com/carla-simulator/carla/releases/tag/0.9.15/))
 - See `requirements.txt` for Python dependencies.
 
 ### Installation
@@ -53,6 +53,19 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
     pip install -r requirements.txt
     ```
 3. Configure environment variables and settings as needed in `envs/configs/config.yaml`.
+
+### Install using poetry
+
+1. install poetry globally:
+    ```bash
+    sudo apt install python3-poetry
+    ```
+2. install dependencies inside the project folder:
+    ```bash
+    cd <project folder>
+    poetry install
+    ```
+
 
 ### Running the RL Pipeline
 

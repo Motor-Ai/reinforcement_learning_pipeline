@@ -33,7 +33,7 @@ if __name__ == '__main__':
             save_freq=1000,
             save_path=save_dir,
             vec_env=env,
-            n_eval_episodes=200,
+            n_eval_episodes=5,
             verbose=1
         )
         logging_callback = LoggerCallback(

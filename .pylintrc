@@ -1,2 +1,5 @@
 [TYPECHECK]
 ignored-modules=carla
+
+[FORMAT]
+max-line-length=240
