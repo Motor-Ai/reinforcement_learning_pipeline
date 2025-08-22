@@ -1,17 +1,12 @@
 import matplotlib
-import matplotlib.pyplot as plt
 import math
 import numpy as np
 import carla
-import sys
-import os
 import heapq
 import torch
 import time
-try:
-    from importlib.metadata import metadata  # Python 3.8+
-except ImportError:
-    from importlib_metadata import metadata  # Backport for Python <3.8
+
+from importlib.metadata import metadata  # Python 3.8+
 
 from packaging.version import Version
 from time import sleep
@@ -20,12 +15,12 @@ from time import sleep
 # sys.path.append(PATH)
 
 # from carla import ad
-from envs.observation.decision_traffic_rules.feature_indices import agent_feat_id
-from envs.observation.decision_traffic_rules.traffic_sign_db import traffic_feat_idx, regulatory_ts_encoding
+from src.envs.observation.decision_traffic_rules.feature_indices import agent_feat_id
+from src.envs.observation.decision_traffic_rules.traffic_sign_db import traffic_feat_idx, regulatory_ts_encoding
 # from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from src.envs.observation.decision_traffic_rules.lanelet_data_extractor import LaneletDataExtractor
 
-
-from envs.observation.tr_costs import *
+from src.envs.observation.tr_costs import get_rel_prio_intersection
 
 matplotlib.use("Agg")
 
@@ -70,11 +65,6 @@ class Vector_BEV_observer:
         self.LANEPOINT_DIST = LANEPOINT_DIST  # diatnce between lane points in m
         self.file_name = 0
         try:
-            from decision_traffic_rules.traffic_sign_db import traffic_feat_idx
-            from decision_traffic_rules.lanelet_data_extractor import (
-                LaneletDataExtractor,
-            )
-
             self.lanelet_data = LaneletDataExtractor(
                 file_path="/home/ubuntu/workstation/CARLA_0.9.14_RSS/CarlaUE4/Content/Carla/Maps/Town04.osm",
                 origin=(0, 0),

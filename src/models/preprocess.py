@@ -2,8 +2,8 @@ import numpy as np
 from typing import Any
 from typing_extensions import TypedDict
 
-from envs.observation.decision_traffic_rules.feature_indices import agent_feat_id
-from envs.observation.decision_traffic_rules.traffic_sign_db import traffic_feat_idx
+from src.envs.observation.decision_traffic_rules.feature_indices import agent_feat_id
+from src.envs.observation.decision_traffic_rules.traffic_sign_db import traffic_feat_idx
 
 
 class Observation(TypedDict):  #TODO: set types for the keys
@@ -36,7 +36,6 @@ class Preprocessor:
         self.R_max = r_max
         
     def preprocess_observation(self, observation: Observation) -> Observation:
-        self.observations_before_preprocessing = observation
         # remove unnecessary attributes
         ego_data = observation.get('ego')[..., self.ego_attr_keep]
         neighbors_data = observation.get('neighbors')[..., self.ego_attr_keep] # keep the same attributes as ego

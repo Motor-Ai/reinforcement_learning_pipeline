@@ -30,7 +30,7 @@ def detect_lanelet_priority(turnleft=False, turnright=False, yieldsign=False, st
         else:
             return 6
 
-def get_turning_intention(vehicle):
+def get_turning_intention(vehicle: carla.Vehicle) -> tuple[bool, bool]:
     """
     Get the turning intention of vehicle at intersection
     """

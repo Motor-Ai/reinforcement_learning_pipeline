@@ -1,12 +1,12 @@
 import os
 import yaml
-from envs.carla_env import CarlaGymEnv
-from envs.callbacks import SaveBestlCallback, LoggerCallback
+from src.envs.carla_env import CarlaGymEnv
+from src.envs.callbacks import SaveBestlCallback, LoggerCallback
 from stable_baselines3 import A2C
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
 # Load configurations from YAML
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "envs/configs/config.yaml")
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "src/envs/configs/config.yaml")
 with open(CONFIG_PATH, "r") as config_file:
     config = yaml.safe_load(config_file)
 
@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
         # Train A2C model
         model = A2C("MultiInputPolicy", env, verbose=1, tensorboard_log="./tensorboard/")
-        model.learn(total_timesteps=50_000, callback=[checkpoint_callback, logging_callback])
+        model.learn(total_timesteps=500_000, callback=[checkpoint_callback, logging_callback])
 
     except KeyboardInterrupt:
         print("Training interrupted.")

@@ -1,5 +1,3 @@
-import carla
-import numpy as np
 
 class Reward:
     """Base class for computing rewards in a CARLA environment."""

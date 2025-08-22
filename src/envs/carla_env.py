@@ -22,11 +22,11 @@ from agents.navigation.controller import VehiclePIDController
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 
 # MAI imports
-from envs.observation.vector_BEV_observer import Vector_BEV_observer
-from envs.carla_env_render import MatplotlibAnimationRenderer
+from src.envs.observation.vector_BEV_observer import Vector_BEV_observer
+from src.envs.carla_env_render import MatplotlibAnimationRenderer
 #from models.dipp_predictor_py.dipp_carla import Predictor
-from models.preprocess import Preprocessor, Observation
-from envs.reward.base_reward import Reward
+from src.models.preprocess import Preprocessor, Observation
+from src.envs.reward.base_reward import Reward
 
 # pyright: reportAttributeAccessIssue=none
 
@@ -105,7 +105,7 @@ class CarlaGymEnv(gym.Env):
         self.display_height = display_height
 
         # Connect to CARLA server and get world
-        self.client = carla.Client('localhost', 2000)
+        self.client = carla.Client('localhost', 3000)  #
         self.client.set_timeout(10.0)
         if self.use_custom_map:
             # Load the custom OpenDRIVE (.xodr) map

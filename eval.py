@@ -1,12 +1,12 @@
 import os
 import yaml
-from envs.carla_env import CarlaGymEnv
-from envs.carla_env_render import MatplotlibAnimationRenderer
+from src.envs.carla_env import CarlaGymEnv
+from src.envs.carla_env_render import MatplotlibAnimationRenderer
 from stable_baselines3 import A2C
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
 # Load configurations from YAML
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "envs/configs/config.yaml")
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "src/envs/configs/config.yaml")
 with open(CONFIG_PATH, "r") as config_file:
     config = yaml.safe_load(config_file)
 

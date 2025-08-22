@@ -134,6 +134,7 @@ class LoggerCallback(BaseCallback):
         self.episode_rewards = []
         self.episode_lengths = []  # Track episode lengths
         self.writer: Optional[SummaryWriter] = None
+        self.vecnormalize = True #if isinstance(self.locals['env'], VecNormalize) else False
 
     def _on_training_start(self):
         """Called at the beginning of training, initializes TensorBoard writer."""
@@ -147,7 +148,11 @@ class LoggerCallback(BaseCallback):
         self.action_buffer_1.append(actions_1)
 
         # Store episode rewards
-        reward = self.locals["rewards"][0]  # Assuming single agent
+        reward = self.locals["rewards"][0] # Assuming single agent
+        if self.vecnormalize: 
+            # Unnormalize reward if using VecNormalize
+            assert isinstance(self.locals['env'], VecNormalize)
+            reward = self.locals['env'].get_original_reward()[0] # Assuming single agent
         self.episode_rewards.append(reward)
 
         # Track episode length

@@ -423,6 +423,14 @@ optional = false
 python-versions = ">=3.10"
 
 [[package]]
+name = "lanelet2"
+version = "1.2.2"
+description = "Map handling framework for automated driving."
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "laspy"
 version = "2.6.1"
 description = "Native Python ASPRS LAS read/write library"
@@ -713,7 +721,7 @@ python-versions = ">=3.8"
 
 [[package]]
 name = "pandas"
-version = "2.3.1"
+version = "2.3.2"
 description = "Powerful data structures for data analysis, time series, and statistics"
 category = "main"
 optional = false
@@ -1227,7 +1235,7 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.10, <3.11"
-content-hash = "63e44ddb691c8e06eda3ed967cbc29868b3312864ba9a4c6d1af314caad5adf5"
+content-hash = "87c1ad210e89f150f58bcb365d11d29fd8615cb7cc9780f78942afc4fd96306a"
 
 [metadata.files]
 absl-py = []
@@ -1264,6 +1272,7 @@ joblib = []
 keras-applications = []
 keras-preprocessing = []
 kiwisolver = []
+lanelet2 = []
 laspy = []
 markdown = []
 markupsafe = []

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-from envs.observation.decision_traffic_rules.feature_indices import agent_feat_id
+from src.envs.observation.decision_traffic_rules.feature_indices import agent_feat_id
 
 class MatplotlibAnimationRenderer:
     def __init__(self, save_path='/home/ratul/Workstation/motor-ai/MAI_Bench2Drive/rss_debug/temp_plots/pngs/'):
