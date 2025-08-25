@@ -1,7 +1,6 @@
 import carla # pylint: disable=no-member
 import random
 import pygame
-import torch
 import numpy as np
 from numpy.typing import NDArray
 import gymnasium as gym
@@ -25,7 +24,7 @@ from agents.navigation.global_route_planner import GlobalRoutePlanner
 from src.envs.observation.vector_BEV_observer import Vector_BEV_observer
 from src.envs.carla_env_render import MatplotlibAnimationRenderer
 #from models.dipp_predictor_py.dipp_carla import Predictor
-from src.models.preprocess import Preprocessor, Observation
+from src.envs.observation.observation_manager import ObservationManager
 from src.envs.reward.base_reward import Reward
 
 # pyright: reportAttributeAccessIssue=none
@@ -87,8 +86,7 @@ class CarlaGymEnv(gym.Env):
         self.prev_distance: Optional[float] = None
         self.matplotlib_renderer: Optional[MatplotlibAnimationRenderer] = None
         self.preprocess_observation = PREPROCESS_OBSERVATION
-        self.preprocessor = Preprocessor()
-        self.last_obs: Optional[Observation] = None
+        self.last_obs: Optional[dict] = None
         self.global_route: np.ndarray = None
         self.ego_vehicle: carla.Actor = None
         self.spawn_points: list[carla.Transform] = []
@@ -153,25 +151,12 @@ class CarlaGymEnv(gym.Env):
         self.action_space = spaces.MultiDiscrete([self.num_maneuvers, self.n_action_per_maneuver])
         # Define the possible values for each dimension
         self.index_map = {1: 1, 2: 5, 3: 10, 4: 15}
-        # --------------------------------------------------------
-        # Hard-code your observation space to match the shapes you expect.
-        # Example shapes (leading dimension 1 for ego, 5 for neighbors, etc.).
-        # Adjust these as needed to match your real data.
-        # --------------------------------------------------------
-        if PREPROCESS_OBSERVATION:
-            self.observation_space = spaces.Dict({
-            "ego": spaces.Box(low=-1, high=1, shape=(1, self.bev_info.HISTORY, 7), dtype=np.float32),
-            "neighbors": spaces.Box(low=-1, high=1, shape=(1, self.bev_info.MAX_NEIGHBORS, self.bev_info.HISTORY, 7), dtype=np.float32),
-            "map": spaces.Box(low=-1, high=1, shape=(1, self.bev_info.MAX_LANES, self.bev_info.MAX_LANE_LEN, 10), dtype=np.float32),
-            "global_route": spaces.Box(low=-1, high=1, shape=(self.bev_info.MAX_LANE_LEN, 3), dtype=np.float32)
-        })
-        else:
-            self.observation_space = spaces.Dict({
-                "ego": spaces.Box(low=-np.inf, high=np.inf, shape=(1, self.bev_info.HISTORY, 24), dtype=np.float32),
-                "neighbors": spaces.Box(low=-np.inf, high=np.inf, shape=(1, self.bev_info.MAX_NEIGHBORS, self.bev_info.HISTORY, 24), dtype=np.float32),
-                "map": spaces.Box(low=-np.inf, high=np.inf, shape=(1, self.bev_info.MAX_LANES, self.bev_info.MAX_LANE_LEN, 46), dtype=np.float32),
-                "global_route": spaces.Box(low=-np.inf, high=np.inf, shape=(self.bev_info.MAX_LANE_LEN, 3), dtype=np.float32)
-            })
+
+        self.observation_manager = ObservationManager(
+            obs_keys=["ego", "neighbors", "map", "global_route"],
+            preprocess=self.preprocess_observation,
+        )
+        self.observation_space = self.observation_manager.observation_space
 
         # Initialize collision flag
         self.collision_detected = False
@@ -232,7 +217,7 @@ class CarlaGymEnv(gym.Env):
                     pass
         self.actor_list = []
 
-    def reset(self, *, seed: int | None = None, options=None) -> tuple[Observation, dict[str, Any]]:
+    def reset(self, *, seed: int | None = None, options=None) -> tuple[dict, dict[str, Any]]:
         """
         Reset the simulation: clean up previous actors, spawn the ego vehicle,
         attach sensors (including collision sensor and, if enabled, camera), spawn 
@@ -242,12 +227,6 @@ class CarlaGymEnv(gym.Env):
         self._cleanup()
         self.sim_time = 0.0
         self.collision_detected = False
-
-        if self.preprocess_observation:
-            self.preprocessor = Preprocessor()
-
-        # Initialize BEV observer (your original code uses FUTURE_LEN=1)
-        self.bev_info = Vector_BEV_observer(FUTURE_LEN=1)
 
         # Spawn Ego Vehicle
         vehicle_bp = self.blueprint_library.filter('vehicle.tesla.model3')[0]
@@ -303,29 +282,6 @@ class CarlaGymEnv(gym.Env):
         # Tick the world once to initialize everything
         self.world.tick()
 
-        # Get initial observation from the BEV observer
-        if self.bev_info.client_init(world=self.world):
-            ego_hist, neighbor_hist, map_hist, crosswalk_hist, _ = self.bev_info.update(re_reference=False)
-            ego_hist, neighbor_hist, map_hist, ground_truth, crosswalk_hist = \
-                self.bev_info.create_buffer_and_transform_frame(np.array(ego_hist),
-                                                                  np.array(neighbor_hist), 
-                                                                  np.array(map_hist), 
-                                                                  np.array(crosswalk_hist))
-            # -----------
-            # Convert your data to the shapes (1, 20, 24), (5, 20, 24), (20, 50, 46)
-            # or whatever shapes you declared in observation_space
-            # -----------
-            ego_obs = self.bev_info.carla_to_MAI_coordinates(data=ego_hist, is_map=False)
-            neighbors_obs = self.bev_info.carla_to_MAI_coordinates(data=neighbor_hist, is_map=False)
-            map_obs = self.bev_info.carla_to_MAI_coordinates(data=map_hist, is_map=True)
-            if len(ego_obs) > 1:
-                ego_obs = ego_obs[-2:-1]
-                neighbors_obs = neighbors_obs[-2:-1]
-                map_obs = map_obs[-2:-1]
-
-        else:
-            ego_obs, neighbors_obs, map_obs = None, None, None
-
         # Compute the global route only once.
         self._generate_global_route()
         if self.show_route:
@@ -337,14 +293,8 @@ class CarlaGymEnv(gym.Env):
                     color=carla.Color(255, 255, 0),
                     life_time=self.scene_duration
                 )
-        global_route_ego_frame = torch.zeros(size=(self.bev_info.MAX_LANE_LEN, 3))
-        observation: Observation = {"ego": ego_obs, 
-                        "neighbors": neighbors_obs, 
-                        "map": map_obs, 
-                        "global_route": global_route_ego_frame}  # New key with the global route.
-
-        if self.preprocess_observation:
-            observation = self.preprocessor.preprocess_observation(observation)
+        
+        observation = self.observation_manager.get_obs(self.world)
 
         info = {}
         return observation, info
@@ -412,7 +362,7 @@ class CarlaGymEnv(gym.Env):
             global_route_ego_frame = np.pad(global_route_ego_frame, ((0, pad_len), (0, 0)))
         return global_route_ego_frame, global_route_ego_frame_no_padding
 
-    def step(self, action: NDArray[np.float64]) -> Tuple[Observation, float, bool, bool, dict]:
+    def step(self, action: NDArray[np.float64]) -> Tuple[dict, float, bool, bool, dict]:
         # transform global route to ego frame
         global_route_ego_frame, global_route_ego_frame_no_padding = self._transform_to_ego_frame()
 
@@ -480,34 +430,7 @@ class CarlaGymEnv(gym.Env):
         self.world.tick()
         self.sim_time += self.frequency
 
-        # Get new observation from BEV observer
-        if self.bev_info.client_init(world=self.world):
-            ego_hist, neighbor_hist, map_hist, crosswalk_hist, _ = self.bev_info.update(re_reference=False)
-            ego_hist, neighbor_hist, map_hist, ground_truth, crosswalk_hist = \
-                self.bev_info.create_buffer_and_transform_frame(np.array(ego_hist),
-                                                                np.array(neighbor_hist),
-                                                                np.array(map_hist),
-                                                                np.array(crosswalk_hist))
-            ego_obs = self.bev_info.carla_to_MAI_coordinates(data=ego_hist, is_map=False)
-            neighbors_obs = self.bev_info.carla_to_MAI_coordinates(data=neighbor_hist, is_map=False)
-            map_obs = self.bev_info.carla_to_MAI_coordinates(data=map_hist, is_map=True)
-            global_route_ego_frame = self.bev_info.carla_to_MAI_coordinates(data=global_route_ego_frame,
-                                                                                is_map=True)
-            if len(ego_obs) > 1:
-                ego_obs = ego_obs[-2:-1]
-                neighbors_obs = neighbors_obs[-2:-1]
-                map_obs = map_obs[-2:-1]
-
-        else:
-            ego_obs, neighbors_obs, map_obs = None, None, None
-
-        observation: Observation = {"ego": ego_obs,
-                       "neighbors": neighbors_obs, 
-                       "map": map_obs, 
-                       "global_route": global_route_ego_frame}
-
-        if self.preprocess_observation:
-            observation = self.preprocessor.preprocess_observation(observation)
+        observation = self.observation_manager.get_obs(self.world, global_route_ego_frame)
 
         self.last_obs = observation  # Save the latest observation for rendering
 

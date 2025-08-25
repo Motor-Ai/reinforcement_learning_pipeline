@@ -6,7 +6,7 @@ import heapq
 import torch
 import time
 
-from importlib.metadata import metadata  # Python 3.8+
+from importlib.metadata import metadata
 
 from packaging.version import Version
 from time import sleep
