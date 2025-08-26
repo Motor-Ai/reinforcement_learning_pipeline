@@ -133,6 +133,7 @@ class LoggerCallback(BaseCallback):
         self.action_buffer_1 = []
         self.episode_rewards = []
         self.episode_lengths = []  # Track episode lengths
+        self.crashes = 0
         self.writer: Optional[SummaryWriter] = None
         self.vecnormalize = True #if isinstance(self.locals['env'], VecNormalize) else False
 
@@ -149,7 +150,7 @@ class LoggerCallback(BaseCallback):
 
         # Store episode rewards
         reward = self.locals["rewards"][0] # Assuming single agent
-        if self.vecnormalize: 
+        if self.vecnormalize:
             # Unnormalize reward if using VecNormalize
             assert isinstance(self.locals['env'], VecNormalize)
             reward = self.locals['env'].get_original_reward()[0] # Assuming single agent
@@ -160,19 +161,27 @@ class LoggerCallback(BaseCallback):
             self.episode_lengths.append(len(self.episode_rewards))
             self.episode_rewards = []  # Reset for next episode
 
+        infos = self.locals["infos"]
+        # Count crashes
+        self.crashes += sum(1 for info in infos if info.get("crash", False))
+
         if self.num_timesteps % self.save_freq == 0:
+            assert isinstance(self.writer, SummaryWriter)
             # Compute mean reward and episode length
             mean_training_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0
             ep_len_mean = np.mean(self.episode_lengths) if self.episode_lengths else 0
 
             # Log rollout metrics
-            if self.writer:
-                self.writer.add_scalar("rollout/ep_rew_mean", mean_training_reward, self.num_timesteps)
-                self.writer.add_scalar("rollout/ep_len_mean", ep_len_mean, self.num_timesteps)
+            self.writer.add_scalar("rollout/ep_rew_mean", mean_training_reward, self.num_timesteps)
+            self.writer.add_scalar("rollout/ep_len_mean", ep_len_mean, self.num_timesteps)
 
             # Reset episode tracking
             self.episode_rewards = []
             self.episode_lengths = []
+
+            # Log crashes
+            self.writer.add_scalar("rollout/crash_rate", self.crashes/self.save_freq, self.num_timesteps)
+            self.crashes = 0  # Reset crash count
 
             # Log action distributions
             actions_np_0 = np.array(self.action_buffer_0)

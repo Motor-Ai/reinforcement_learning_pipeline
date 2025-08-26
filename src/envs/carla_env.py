@@ -208,12 +208,13 @@ class CarlaGymEnv(gym.Env):
         """
         Destroy all actors (vehicles, sensors, etc.) that were spawned.
         """
-        print("Destroying actors...")
+        #print("Destroying actors...")
         for actor in self.actor_list:
             if actor is not None:
                 try:
                     actor.destroy()
-                except Exception:
+                except Exception: #TODO: replace with specific exception
+                    print("Error destroying actor:", actor)
                     pass
         self.actor_list = []
 
@@ -257,7 +258,7 @@ class CarlaGymEnv(gym.Env):
             self.camera = self.world.spawn_actor(camera_bp, camera_transform, attach_to=self.ego_vehicle)
             assert isinstance(self.camera, carla.Sensor), "Camera is not a Sensor."
             self.actor_list.append(self.camera)
-            self.camera.listen(lambda image: self.process_image(image, self.screen))
+            self.camera.listen(lambda image: self.process_image(image, self.screen)) # type: ignore[list-item, return-value]
 
         # Attach Collision Sensor to Ego Vehicle
         collision_bp = self.blueprint_library.find('sensor.other.collision')
@@ -265,7 +266,7 @@ class CarlaGymEnv(gym.Env):
         self.collision_sensor = self.world.spawn_actor(collision_bp, collision_transform, attach_to=self.ego_vehicle)
         assert isinstance(self.collision_sensor, carla.Sensor), "Collision sensor is not a Sensor."
         self.actor_list.append(self.collision_sensor)
-        self.collision_sensor.listen(lambda event: self._on_collision(event))
+        self.collision_sensor.listen(lambda event: self._on_collision(event)) # type: ignore[list-item, return-value]
 
         # Spawn other vehicles on autopilot
         self.vehicles = []
@@ -450,7 +451,7 @@ class CarlaGymEnv(gym.Env):
         if self.collision_detected:
             terminated = True  # End episode on collision
 
-        info = {}
+        info = {"crash": self.collision_detected}
         return observation, reward, terminated, truncated, info
 
     def _compute_route_error(self, target_global):
