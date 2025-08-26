@@ -21,20 +21,20 @@ class Reward:
         Returns:
             reward (float): The computed reward.
         """
+        reward = 0.0
 
         # Reduced progress-based reward
-        if prev_distance is None:
-            progress_reward = 0.0
-        else:
-            progress_reward = 1.0 * (prev_distance - distance_to_goal)
+        if prev_distance is not None:
+            reward += 1.0 * (prev_distance - distance_to_goal)
 
-        # Check if goal is reached
+        # Check if goal is reached. Implicitly rewarded by terminating the episode.
         goal_reached = distance_to_goal < self.goal_threshold
+        if goal_reached:
+            reward += 50.0
 
-        # Total reward
-        reward = self.time_penalty + progress_reward + 50.0 * goal_reached - 50.0 * collision #TODO: add collision time penalty?
+        # Collision adds the remaining time penalty, since the episode will terminate
+        if collision:
+            reward += -50.0
+            reward += self.time_penalty * (self.scene_duration - self.sim_time)
 
-        # preprocess the reward
-        # self.preprocessor.set_reward_range(-400, 200)
-        # reward = self.preprocessor.preprocess_reward(reward)
         return reward
