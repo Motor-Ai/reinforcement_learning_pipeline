@@ -364,6 +364,7 @@ class CarlaGymEnv(gym.Env):
         return global_route_ego_frame, global_route_ego_frame_no_padding
 
     def step(self, action: NDArray[np.float64]) -> Tuple[dict, float, bool, bool, dict]:
+        info = {}
         # transform global route to ego frame
         global_route_ego_frame, global_route_ego_frame_no_padding = self._transform_to_ego_frame()
 
@@ -378,7 +379,7 @@ class CarlaGymEnv(gym.Env):
             action_point = action.copy()
             if len(global_route_ego_frame_no_padding):
                 if action[0] in {0, 1, 2} and 1 <= action[1] <= 4:
-                    self.index_map = {1: 1, 2: 5, 3: 10, 4: 15}
+                    self.index_map = {1: 1, 2: 5, 3: 10, 4: 15} #distnace in meters?
                     chosen_index = self.index_map[action[1]]
 
                     # Clamp: 0 <= chosen_index < len(global_route_ego_frame_no_padding) 
@@ -395,9 +396,9 @@ class CarlaGymEnv(gym.Env):
                     # Compute perpendicular displacement (90-degree rotation)
                     perpendicular = np.array([-np.sin(yaw), np.cos(yaw)])
 
-                    if action[0] == 1:
+                    if action[0] == 1: #left?
                         action_point = action_point + (-5.0 * perpendicular)
-                    elif action[0] == 2:
+                    elif action[0] == 2: #right?
                         action_point = action_point + (5.0 * perpendicular)
             else:
                 action_point = np.array([0.0, 0.0])
@@ -416,6 +417,7 @@ class CarlaGymEnv(gym.Env):
             # Compute the target speed based on the distance (and req_time)
             distance = np.linalg.norm(np.array([target_location.x, target_location.y]) - ego_position_global)
             target_speed = distance / self.req_time * 3.6  # converting to km/h
+            info["target_speed"] = target_speed
 
             # Get the nearest waypoint corresponding to the target location
             target_waypoint = self.world.get_map().get_waypoint(target_location)
@@ -450,8 +452,8 @@ class CarlaGymEnv(gym.Env):
         # Check for collision penalty
         if self.collision_detected:
             terminated = True  # End episode on collision
+        info["crash"] = self.collision_detected
 
-        info = {"crash": self.collision_detected}
         return observation, reward, terminated, truncated, info
 
     def _compute_route_error(self, target_global):

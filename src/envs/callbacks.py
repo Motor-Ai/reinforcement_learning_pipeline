@@ -134,6 +134,7 @@ class LoggerCallback(BaseCallback):
         self.episode_rewards = []
         self.episode_lengths = []  # Track episode lengths
         self.crashes = 0
+        self.speeds = []
         self.writer: Optional[SummaryWriter] = None
         self.vecnormalize = True #if isinstance(self.locals['env'], VecNormalize) else False
 
@@ -164,6 +165,8 @@ class LoggerCallback(BaseCallback):
         infos = self.locals["infos"]
         # Count crashes
         self.crashes += sum(1 for info in infos if info.get("crash", False))
+        # Track speeds
+        self.speeds.extend(info["target_speed"] for info in infos if "target_speed" in info)
 
         if self.num_timesteps % self.save_freq == 0:
             assert isinstance(self.writer, SummaryWriter)
@@ -182,6 +185,13 @@ class LoggerCallback(BaseCallback):
             # Log crashes
             self.writer.add_scalar("rollout/crash_rate", self.crashes/self.save_freq, self.num_timesteps)
             self.crashes = 0  # Reset crash count
+
+            # Log speeds
+            if self.speeds:
+                speeds_np = np.array(self.speeds)
+                self.writer.add_scalar("rollout/mean_speed", np.mean(speeds_np), self.num_timesteps)
+                self.writer.add_scalar("rollout/max_speed", np.max(speeds_np), self.num_timesteps)
+                self.speeds = []  # Reset speeds
 
             # Log action distributions
             actions_np_0 = np.array(self.action_buffer_0)
