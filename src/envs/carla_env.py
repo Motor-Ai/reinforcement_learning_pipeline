@@ -449,7 +449,7 @@ class CarlaGymEnv(gym.Env):
 
         # Check if goal is reached
         goal_reached = distance_to_goal < self.goal_threshold
-
+        info["goal_reached"] = goal_reached
         terminated = goal_reached # End episode if goal is reached
         truncated = self.timestep >= self.scene_duration / self.frequency # End episode if time is up
 

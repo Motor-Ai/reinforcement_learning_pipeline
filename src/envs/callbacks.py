@@ -134,6 +134,7 @@ class LoggerCallback(BaseCallback):
         self.episode_rewards = []
         self.episode_lengths = []  # Track episode lengths
         self.crashes = 0
+        self.goals_reached = 0
         self.speeds = []
         self.writer: Optional[SummaryWriter] = None
         self.vecnormalize = True #if isinstance(self.locals['env'], VecNormalize) else False
@@ -165,6 +166,8 @@ class LoggerCallback(BaseCallback):
         infos = self.locals["infos"]
         # Count crashes
         self.crashes += sum(1 for info in infos if info.get("crash", False))
+        # Count goal reached
+        self.goals_reached += sum(1 for info in infos if info.get("goal_reached", False))
         # Track speeds
         self.speeds.extend(info["target_speed"] for info in infos if "target_speed" in info)
 
@@ -185,6 +188,10 @@ class LoggerCallback(BaseCallback):
             # Log crashes
             self.writer.add_scalar("rollout/crash_rate", self.crashes/self.save_freq, self.num_timesteps)
             self.crashes = 0  # Reset crash count
+
+            # Log goals reached
+            self.writer.add_scalar("rollout/goals_reached", self.goals_reached, self.num_timesteps)
+            self.goals_reached = 0  # Reset goals reached count
 
             # Log speeds
             if self.speeds:
