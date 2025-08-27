@@ -5,7 +5,8 @@ import carla
 import heapq
 import torch
 import time
-
+from collections import deque
+from itertools import islice
 from importlib.metadata import metadata
 
 from packaging.version import Version
@@ -26,6 +27,21 @@ matplotlib.use("Agg")
 
 RSS_NOT_FOUND_VALUE = -100.0
 
+
+class SliceDeque(deque):
+    """A deque that supports slicing and negative indices."""
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            start, stop, step = index.indices(len(self))
+            return list(islice(self, start, stop, step))
+        else:
+            # Handle negative indexing
+            if index < 0:
+                index += len(self)
+            return super().__getitem__(index)
+
+
 class Vector_BEV_observer:
     def __init__(
         self,
@@ -40,11 +56,12 @@ class Vector_BEV_observer:
         MAX_CROSSWALKS = 10,
     ):
         # initialise buffer - no refernce
-        self.ego_data = []
-        self.neighbor_data = []
-        self.map_data = []
-        self.crosswalk_data = []
-        self.ego_transform_data = []
+        buffer_len = 2*(HISTORY + FUTURE_LEN) # the 2x is probably overkill
+        self.ego_data = SliceDeque(maxlen=buffer_len)
+        self.neighbor_data = SliceDeque(maxlen=buffer_len)
+        self.map_data = SliceDeque(maxlen=buffer_len)
+        self.crosswalk_data = SliceDeque(maxlen=buffer_len)
+        self.ego_transform_data = SliceDeque(maxlen=buffer_len)
 
         # initialise buffer - rereferenced
         self.ego_hist = []

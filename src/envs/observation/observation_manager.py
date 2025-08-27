@@ -54,6 +54,10 @@ class ObservationManager:
                 raise ValueError(f"Unknown observation key: {obs_name}")
         return spaces.Dict(obs)
     
+    def reset(self):
+        # reset observation history
+        self.bev_info = Vector_BEV_observer(FUTURE_LEN=1)
+    
     #TODO: types? global_route_ego_frame has different types in env
     def get_obs(self, world, global_route_ego_frame: Optional[np.ndarray | torch.Tensor]=None) -> dict:
         # Get new observation from BEV observer

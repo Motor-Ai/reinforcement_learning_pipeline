@@ -139,7 +139,7 @@ class CarlaGymEnv(gym.Env):
         self.tm.global_percentage_speed_difference(self.slowdown_percentage)
 
         # Initialize BEV observer (your original code uses FUTURE_LEN=1)
-        self.bev_info = Vector_BEV_observer(FUTURE_LEN=1)
+        self.bev_info = Vector_BEV_observer(FUTURE_LEN=1) #TODO: this was moved from observation_manager and only used here for constants. replace it
 
         # For cleanup, track spawned actors
         self.actor_list: list[carla.Actor] = []
@@ -226,6 +226,7 @@ class CarlaGymEnv(gym.Env):
         Returns an initial observation.
         """
         self._cleanup()
+        self.observation_manager.reset()
         self.sim_time = 0.0
         self.collision_detected = False
 

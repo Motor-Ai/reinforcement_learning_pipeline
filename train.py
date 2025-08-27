@@ -5,6 +5,8 @@ from src.envs.callbacks import LoggerCallback
 from stable_baselines3 import A2C
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3.common.monitor import Monitor
+
 
 # Load configurations from YAML
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "src/envs/configs/config.yaml")
@@ -17,16 +19,14 @@ SAVE_PATH = config["SAVE_PATH"]
 if __name__ == '__main__':
     # Create vectorized environment
     env = DummyVecEnv([lambda: CarlaGymEnv(render_enabled=RENDER_CAMERA)])
-    eval_env = DummyVecEnv([lambda: CarlaGymEnv(render_enabled=False)])
+    eval_env = DummyVecEnv([lambda: Monitor(CarlaGymEnv(render_enabled=False))])
 
     # Apply VecNormalize (normalizes both observations and rewards)
     env = VecNormalize(env, norm_obs=True, norm_reward=True)
     eval_env = VecNormalize(eval_env, norm_obs=True, norm_reward=False, training=False)  # Don't normalize rewards during eval
-    #eval_env.obs_rms = env.obs_rms #not needed if using EvalCallback, it synchronizes the RMS
 
     # Create a directory for saving models/checkpoints.
     save_dir = SAVE_PATH
-    os.makedirs(save_dir, exist_ok=True)
 
     #NOTE: this will save the model, which contains the VecNormalize layer. you need to use that layer to
     # wrap a new env when testing the model. use model.get_vec_normalize_env().
@@ -37,11 +37,11 @@ if __name__ == '__main__':
         eval_freq=1000,
         best_model_save_path=save_dir,
         log_path=None, # specify path to save results
-        verbose=1
+        verbose=1,
     )
     logging_callback = LoggerCallback(
         save_freq=1000,
-        verbose=1
+        verbose=1,
     )
 
     # Train A2C model
