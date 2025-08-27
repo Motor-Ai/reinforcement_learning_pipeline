@@ -446,6 +446,7 @@ class CarlaGymEnv(gym.Env):
         # Compute distance to goal
         distance_to_goal = self.compute_distance_to_goal(target_location)
         reward = self.reward_func(distance_to_goal, self.prev_distance, self.collision_detected, self.timestep)
+        info["distance_to_goal"] = distance_to_goal
 
         # Check if goal is reached
         goal_reached = distance_to_goal < self.goal_threshold

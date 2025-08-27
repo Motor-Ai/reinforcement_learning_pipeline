@@ -136,6 +136,7 @@ class LoggerCallback(BaseCallback):
         self.crashes = 0
         self.goals_reached = 0
         self.speeds = []
+        self.distance_to_goal = []
         self.writer: Optional[SummaryWriter] = None
         self.vecnormalize = True #if isinstance(self.locals['env'], VecNormalize) else False
 
@@ -170,6 +171,8 @@ class LoggerCallback(BaseCallback):
         self.goals_reached += sum(1 for info in infos if info.get("goal_reached", False))
         # Track speeds
         self.speeds.extend(info["target_speed"] for info in infos if "target_speed" in info)
+        # Track distance to goal
+        self.distance_to_goal.extend(info["distance_to_goal"] for info in infos if "distance_to_goal" in info)
 
         if self.num_timesteps % self.save_freq == 0:
             assert isinstance(self.writer, SummaryWriter)
@@ -177,28 +180,28 @@ class LoggerCallback(BaseCallback):
             mean_training_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0
             ep_len_mean = np.mean(self.episode_lengths) if self.episode_lengths else 0
 
-            # Log rollout metrics
             self.writer.add_scalar("rollout/ep_rew_mean", mean_training_reward, self.num_timesteps)
             self.writer.add_scalar("rollout/ep_len_mean", ep_len_mean, self.num_timesteps)
-
-            # Reset episode tracking
             self.episode_rewards = []
             self.episode_lengths = []
 
-            # Log crashes
             self.writer.add_scalar("rollout/crash_rate", self.crashes/self.save_freq, self.num_timesteps)
             self.crashes = 0  # Reset crash count
 
-            # Log goals reached
             self.writer.add_scalar("rollout/goals_reached", self.goals_reached, self.num_timesteps)
             self.goals_reached = 0  # Reset goals reached count
 
-            # Log speeds
+            if self.distance_to_goal:
+                dist_np = np.array(self.distance_to_goal)
+                self.writer.add_scalar("rollout/mean_distance_to_goal", np.mean(dist_np), self.num_timesteps)
+                self.writer.add_scalar("rollout/min_distance_to_goal", np.min(dist_np), self.num_timesteps)
+                self.distance_to_goal = []
+
             if self.speeds:
                 speeds_np = np.array(self.speeds)
                 self.writer.add_scalar("rollout/mean_speed", np.mean(speeds_np), self.num_timesteps)
                 self.writer.add_scalar("rollout/max_speed", np.max(speeds_np), self.num_timesteps)
-                self.speeds = []  # Reset speeds
+                self.speeds = []
 
             # Log action distributions
             actions_np_0 = np.array(self.action_buffer_0)
