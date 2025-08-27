@@ -1,25 +1,24 @@
 
 class Reward:
     """Base class for computing rewards in a CARLA environment."""
-    def __init__(self, scene_duration: float, sim_time: float):
-        self.scene_duration = scene_duration # = episode length
-        self.sim_time = sim_time
+    def __init__(self, scene_duration: float, step_frequecny: float):
+        self.episode_length = int(scene_duration / step_frequecny)
         self.time_penalty = -1.0
         self.goal_threshold = 0.5 # in meters
 
-    def __call__(self, distance_to_goal, prev_distance, collision: bool) ->  float:
+    def __call__(self, distance_to_goal, prev_distance, collision: bool, timestep: int) ->  float:
         """
         Compute the reward based on:
-        - A small penalty for being far from the goal.
-        - A lower reward for getting closer to the goal.
-        - A smaller step penalty.
-        - A reduced bonus for reaching the goal.
+        - Progress towards the goal (+1 per meter)
+        - Reaching the goal (+50)
+        - Collision (-50)
+        - Time penalty (-1 per step until goal is reached)
 
         Args:
-            distance_to_goal (float): The distance to the goal.
-
-        Returns:
-            reward (float): The computed reward.
+            distance_to_goal (float?): Current distance to the goal.
+            prev_distance (float?): Previous distance to the goal.
+            collision (bool): Whether a collision has occurred.
+            timestep (int): Current timestep in the episode.
         """
         reward = 0.0
 
@@ -35,6 +34,6 @@ class Reward:
         # Collision adds the remaining time penalty, since the episode will terminate
         if collision:
             reward += -50.0
-            reward += self.time_penalty * (self.scene_duration - self.sim_time)
+            reward += self.time_penalty * (self.episode_length - timestep)
 
         return reward

@@ -81,19 +81,20 @@ class CarlaGymEnv(gym.Env):
         self.use_custom_map = USE_CUSTOM_MAP
         self.show_route = SHOW_ROUTE
         self.sim_time = 0.0
+        self.timestep = 0
         self.goal_threshold = 0.5  # meters
         self.map_path = '/home/ratul/Downloads/Tegel_map_for_Decision_1302.xodr'
         self.prev_distance: Optional[float] = None
         self.matplotlib_renderer: Optional[MatplotlibAnimationRenderer] = None
         self.preprocess_observation = PREPROCESS_OBSERVATION
-        self.last_obs: Optional[dict] = None
+        self.obs: Optional[dict] = None
         self.global_route: np.ndarray = None
         self.ego_vehicle: carla.Actor = None
         self.spawn_points: list[carla.Transform] = []
         self.global_route_start: carla.Location = None
         self.global_route_destination: carla.Location = None
-        self.reward_func = Reward(scene_duration=self.scene_duration, sim_time=self.sim_time)
-        
+        self.reward_func = Reward(scene_duration=self.scene_duration, step_frequecny=self.frequency)
+
         # Pygame setup for camera display (only if rendering enabled)
         if self.render_enabled:
             pygame.init()  # pylint: disable=no-member
@@ -228,6 +229,7 @@ class CarlaGymEnv(gym.Env):
         self._cleanup()
         self.observation_manager.reset()
         self.sim_time = 0.0
+        self.timestep = 0
         self.collision_detected = False
 
         # Spawn Ego Vehicle
@@ -432,23 +434,24 @@ class CarlaGymEnv(gym.Env):
 
         # Advance the simulation by one tick
         self.world.tick()
-        self.sim_time += self.frequency
+        self.timestep += 1
+        self.sim_time = self.timestep * self.frequency
 
         observation = self.observation_manager.get_obs(self.world, global_route_ego_frame)
 
-        self.last_obs = observation  # Save the latest observation for rendering
+        self.obs = observation  # Save the latest observation for rendering
 
 
         ######################### Reward and termination ############################
         # Compute distance to goal
         distance_to_goal = self.compute_distance_to_goal(target_location)
-        reward = self.reward_func(distance_to_goal, self.prev_distance, self.collision_detected)
+        reward = self.reward_func(distance_to_goal, self.prev_distance, self.collision_detected, self.timestep)
 
         # Check if goal is reached
         goal_reached = distance_to_goal < self.goal_threshold
 
         terminated = goal_reached # End episode if goal is reached
-        truncated = self.sim_time >= self.scene_duration  # End episode if time is up
+        truncated = self.timestep >= self.scene_duration / self.frequency # End episode if time is up
 
         # Check for collision penalty
         if self.collision_detected:
@@ -541,10 +544,10 @@ class CarlaGymEnv(gym.Env):
             self.matplotlib_renderer = MatplotlibAnimationRenderer()
 
         # Use the stored observation data (if available) to update the renderer.
-        if self.last_obs is not None:
-            ego_obs = self.last_obs["ego"]
-            neighbors_obs = self.last_obs["neighbors"]
-            map_obs = self.last_obs["map"]
+        if self.obs is not None:
+            ego_obs = self.obs["ego"]
+            neighbors_obs = self.obs["neighbors"]
+            map_obs = self.obs["map"]
             self.matplotlib_renderer.update_data(ego_obs, neighbors_obs, map_obs)
 
     def custom_sample_action(self):
