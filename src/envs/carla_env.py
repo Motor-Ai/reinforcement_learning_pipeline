@@ -25,8 +25,8 @@ from src.envs.observation.vector_BEV_observer import Vector_BEV_observer
 from src.envs.carla_env_render import MatplotlibAnimationRenderer
 #from models.dipp_predictor_py.dipp_carla import Predictor
 from src.envs.observation.observation_manager import ObservationManager
+from src.envs.actions.action_manager import ActionManager
 from src.envs.reward.base_reward import Reward
-
 # pyright: reportAttributeAccessIssue=none
 
 #TODO: config should be passed as an argument to the environment, not hard-coded.
@@ -51,6 +51,7 @@ PREPROCESS_OBSERVATION = config["PREPROCESS_OBSERVATION"]
 display_width = config["display_width"]
 display_height = config["display_height"]
 
+MAI_ACTION_SPACE = True
 
 class CarlaGymEnv(gym.Env):
     """
@@ -103,7 +104,7 @@ class CarlaGymEnv(gym.Env):
         self.display_height = display_height
 
         # Connect to CARLA server and get world
-        self.client = carla.Client('localhost', 3000)  #
+        self.client = carla.Client('localhost', 2000)  #
         self.client.set_timeout(10.0)
         if self.use_custom_map:
             # Load the custom OpenDRIVE (.xodr) map
@@ -146,9 +147,17 @@ class CarlaGymEnv(gym.Env):
 
         # Define the action space early on:
         # self.action_space = spaces.Box(low=5, high=10, shape=(2,), dtype=np.float32)
-        self.num_maneuvers = NUM_ACTIONS  # Possible actions: 0, 1, 2, 3, 4
-        self.n_action_per_maneuver = N_ACTION_PER_MANEUVER
-        self.action_space = spaces.MultiDiscrete([self.num_maneuvers, self.n_action_per_maneuver])
+
+        if not MAI_ACTION_SPACE:
+            self.num_maneuvers = NUM_ACTIONS  # Possible actions: 0, 1, 2, 3, 4
+            self.n_action_per_maneuver = N_ACTION_PER_MANEUVER
+            self.action_space = spaces.MultiDiscrete([self.num_maneuvers, self.n_action_per_maneuver])
+        else:
+            self.action_manager = ActionManager( # Not used, Just a stub 
+                action_fields=["acc", "lat_shift", "manuver"] ,
+                n_samples = NUM_ACTIONS)
+            self.action_space = self.action_manager.action_space 
+
         # Define the possible values for each dimension
         self.index_map = {1: 1, 2: 5, 3: 10, 4: 15}
 
@@ -363,8 +372,9 @@ class CarlaGymEnv(gym.Env):
             global_route_ego_frame = np.pad(global_route_ego_frame, ((0, pad_len), (0, 0)))
         return global_route_ego_frame, global_route_ego_frame_no_padding
 
-    def step(self, action: NDArray[np.float64]) -> Tuple[dict, float, bool, bool, dict]:
+    def step(self, action: NDArray[np.float64]|spaces.Box) -> Tuple[dict, float, bool, bool, dict]:
         info = {}
+        print("Action received:", action)
         # transform global route to ego frame
         global_route_ego_frame, global_route_ego_frame_no_padding = self._transform_to_ego_frame()
 
@@ -374,34 +384,45 @@ class CarlaGymEnv(gym.Env):
         current_location = ego_transform.location
         ego_position_global = np.array([current_location.x, current_location.y])
         ego_yaw_global = np.deg2rad(ego_transform.rotation.yaw)
-
+        ego_velocity = self.ego_vehicle.get_velocity()
+        ego_state = [current_location.x, current_location.y, ego_yaw_global, ego_velocity.x, ego_velocity.y]
         if not self.ego_autopilot:
-            action_point = action.copy()
-            if len(global_route_ego_frame_no_padding):
-                if action[0] in {0, 1, 2} and 1 <= action[1] <= 4:
-                    self.index_map = {1: 1, 2: 5, 3: 10, 4: 15} #distnace in meters?
-                    chosen_index = self.index_map[action[1]]
+            if not MAI_ACTION_SPACE:
+                action_point = action.copy()
+                if len(global_route_ego_frame_no_padding):
+                    if action[0] in {0, 1, 2} and 1 <= action[1] <= 4:
+                        self.index_map = {1: 1, 2: 5, 3: 10, 4: 15} #distnace in meters?
+                        chosen_index = self.index_map[action[1]]
 
-                    # Clamp: 0 <= chosen_index < len(global_route_ego_frame_no_padding) 
-                    chosen_index = max(0, min(chosen_index, len(global_route_ego_frame_no_padding) - 1))
+                        # Clamp: 0 <= chosen_index < len(global_route_ego_frame_no_padding) 
+                        chosen_index = max(0, min(chosen_index, len(global_route_ego_frame_no_padding) - 1))
 
-                    # If the last index has a negative value, choose index 0
-                    if global_route_ego_frame_no_padding[chosen_index, 0] < 0:
-                        chosen_index = 0
+                        # If the last index has a negative value, choose index 0
+                        if global_route_ego_frame_no_padding[chosen_index, 0] < 0:
+                            chosen_index = 0
 
-                    action_point = global_route_ego_frame_no_padding[chosen_index, :2].copy()
+                        action_point = global_route_ego_frame_no_padding[chosen_index, :2].copy()
 
-                    yaw = global_route_ego_frame_no_padding[chosen_index, 2]  # Extract yaw (in radians)
+                        yaw = global_route_ego_frame_no_padding[chosen_index, 2]  # Extract yaw (in radians)
 
-                    # Compute perpendicular displacement (90-degree rotation)
-                    perpendicular = np.array([-np.sin(yaw), np.cos(yaw)])
+                        # Compute perpendicular displacement (90-degree rotation)
+                        perpendicular = np.array([-np.sin(yaw), np.cos(yaw)])
 
-                    if action[0] == 1: #left?
-                        action_point = action_point + (-5.0 * perpendicular)
-                    elif action[0] == 2: #right?
-                        action_point = action_point + (5.0 * perpendicular)
+                        if action[0] == 1: #left?
+                            action_point = action_point + (-5.0 * perpendicular)
+                        elif action[0] == 2: #right?
+                            action_point = action_point + (5.0 * perpendicular)
+                else:
+                    action_point = np.array([0.0, 0.0])
+
             else:
-                action_point = np.array([0.0, 0.0])
+                # Action from Policy converted to Frenet to determine the target point
+
+                # Convert 
+                path_x, path_y, path_yaw, path_vel, path_time = self.action_manager.get_path(action, global_route_ego_frame_no_padding, 
+                                                                                            ego_state, plan_time_range=3.0, plan_dt=0.2)
+                TARGET_PT_IDX = 2 # NOTE: PARAM to set which point to use from the planned path
+                action_point = np.array([path_x[TARGET_PT_IDX], path_y[TARGET_PT_IDX]]) # Take the second point in the planned path
 
             target_global = self.ego_to_global(np.array(action_point), ego_position_global, ego_yaw_global)
             target_location = carla.Location(x=target_global[0], y=target_global[1], z=current_location.z)
