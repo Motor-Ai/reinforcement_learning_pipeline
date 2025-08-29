@@ -436,6 +436,7 @@ class CarlaGymEnv(gym.Env):
         self.world.tick()
         self.timestep += 1
         self.sim_time = self.timestep * self.frequency
+        info["sim_time"] = self.sim_time
 
         observation = self.observation_manager.get_obs(self.world, global_route_ego_frame)
 

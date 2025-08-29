@@ -11,57 +11,23 @@ with open(CONFIG_PATH, "r") as config_file:
     config = yaml.safe_load(config_file)
 
 RENDER_CAMERA = config["RENDER_CAMERA"]
-LOAD_MODEL = config["LOAD_MODEL"]
 SAVE_PATH = config["SAVE_PATH"]
-SAVED_MODEL_PATH = os.path.join(os.path.dirname(__file__), config["SAVED_MODEL_PATH"])
 
-VECNORM_PATH = os.path.join(SAVE_PATH, "vec_normalize.pkl")
-
-def find_best_model(path):
-    best_model = None
-    best_reward = float("-inf")
-    if not os.path.exists(path):
-        return None
-    for file in os.listdir(path):
-        if file.startswith("best_model_") and file.endswith(".zip"):
-            try:
-                reward_value = float(file.split("_")[2])
-                if reward_value > best_reward:
-                    best_reward = reward_value
-                    best_model = os.path.join(path, file)
-            except (IndexError, ValueError):
-                continue
-    return best_model
+VECNORM_PATH = os.path.join(SAVE_PATH, "1.1.3.1/vec_normalize.pkl")
+#TODO: right now every new model is saved into the same dir, erasing the previous run. Should
+# make a new dir for every run and make eval load the latest dir by default.
 
 if __name__ == '__main__':
+    eval_env = DummyVecEnv([lambda: CarlaGymEnv(render_enabled=RENDER_CAMERA)])
+    eval_env = VecNormalize.load(VECNORM_PATH, eval_env)
+    eval_env.training = False
+    eval_env.norm_reward = False
+
+    best_model_path = os.path.join(SAVE_PATH, "1.1.3.1/best_model.zip")
+    print(f"Loading best model: {best_model_path}")
+    model = A2C.load(best_model_path, env=eval_env)
+
     try:
-        env = DummyVecEnv([lambda: CarlaGymEnv(render_enabled=False)])
-        eval_env = DummyVecEnv([lambda: CarlaGymEnv(render_enabled=RENDER_CAMERA)])
-
-        # Load VecNormalize statistics if available
-        if os.path.exists(VECNORM_PATH):
-            print(f"Loading VecNormalize statistics from: {VECNORM_PATH}")
-            env = DummyVecEnv([lambda: CarlaGymEnv(render_enabled=False)])
-            env = VecNormalize.load(VECNORM_PATH, env)
-            eval_env = DummyVecEnv([lambda: CarlaGymEnv(render_enabled=RENDER_CAMERA)])
-            eval_env = VecNormalize.load(VECNORM_PATH, eval_env)
-            eval_env.training = False
-            eval_env.norm_reward = False
-        else:
-            print(f"Warning: VecNormalize statistics not found at {VECNORM_PATH}. Running without normalization.")
-
-        best_model_path = find_best_model(SAVE_PATH)
-
-        if best_model_path:
-            print(f"Loading best model: {best_model_path}")
-            model = A2C.load(best_model_path, env=eval_env)
-        elif LOAD_MODEL:
-            print(f"Loading last saved model: {SAVED_MODEL_PATH}")
-            model = A2C.load(SAVED_MODEL_PATH, env=eval_env)
-        else:
-            print("No saved model found, initializing new model.")
-            model = A2C("MultiInputPolicy", env)
-
         obs = eval_env.reset()
         done = False
         step_count = 0
@@ -72,11 +38,11 @@ if __name__ == '__main__':
             action, _ = model.predict(obs, deterministic=True)
             obs, reward, done, info = eval_env.step(action)
             step_count += 1
-            print(f"Step: {step_count}, Reward: {reward}, Sim Time: {info['sim_time']}")
+            print(f"Step: {step_count}, Reward: {reward}, Sim Time: {info[0]['sim_time']}")
             step += 1
 
     except KeyboardInterrupt:
         print("Simulation interrupted.")
-    finally:
-        env.close()
-        print("Environment closed.")
+
+    eval_env.close()
+    print("Environment closed.")
