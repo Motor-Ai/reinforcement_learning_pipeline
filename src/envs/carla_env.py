@@ -374,7 +374,7 @@ class CarlaGymEnv(gym.Env):
 
     def step(self, action: NDArray[np.float64]|spaces.Box) -> Tuple[dict, float, bool, bool, dict]:
         info = {}
-        print("Action received:", action)
+        # print("Action received:", action)
         # transform global route to ego frame
         global_route_ego_frame, global_route_ego_frame_no_padding = self._transform_to_ego_frame()
 
@@ -415,14 +415,16 @@ class CarlaGymEnv(gym.Env):
                 else:
                     action_point = np.array([0.0, 0.0])
 
-            else:
-                # Action from Policy converted to Frenet to determine the target point
-
-                # Convert 
-                path_x, path_y, path_yaw, path_vel, path_time = self.action_manager.get_path(action, global_route_ego_frame_no_padding, 
-                                                                                            ego_state, plan_time_range=3.0, plan_dt=0.2)
-                TARGET_PT_IDX = 2 # NOTE: PARAM to set which point to use from the planned path
-                action_point = np.array([path_x[TARGET_PT_IDX], path_y[TARGET_PT_IDX]]) # Take the second point in the planned path
+            else: 
+                if len(global_route_ego_frame_no_padding) > 1:
+                    # Action from Policy converted to Frenet to determine the target point
+                    ref_path = np.unique(global_route_ego_frame_no_padding[:,:2], axis = -1)
+                    path_x, path_y, path_yaw, path_vel, path_time = self.action_manager.get_path(action, ref_path, 
+                                                                                                ego_state, plan_time_range=3.0, plan_dt=0.2)
+                    TARGET_PT_IDX = 2 # NOTE: PARAM to set which point to use from the planned path
+                    action_point = np.array([path_x[TARGET_PT_IDX], path_y[TARGET_PT_IDX]]) # Take the second point in the planned path
+                else:
+                    action_point = np.array([0.0, 0.0])
 
             target_global = self.ego_to_global(np.array(action_point), ego_position_global, ego_yaw_global)
             target_location = carla.Location(x=target_global[0], y=target_global[1], z=current_location.z)
