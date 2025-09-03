@@ -19,7 +19,6 @@ from time import sleep
 from src.envs.observation.decision_traffic_rules.feature_indices import agent_feat_id
 from src.envs.observation.decision_traffic_rules.traffic_sign_db import traffic_feat_idx, regulatory_ts_encoding
 # from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
-from src.envs.observation.decision_traffic_rules.lanelet_data_extractor import LaneletDataExtractor
 
 from src.envs.observation.tr_costs import get_rel_prio_intersection
 
@@ -81,16 +80,7 @@ class Vector_BEV_observer:
         self.MAX_CROSSWALKS = MAX_CROSSWALKS
         self.LANEPOINT_DIST = LANEPOINT_DIST  # diatnce between lane points in m
         self.file_name = 0
-        try:
-            self.lanelet_data = LaneletDataExtractor(
-                file_path="/home/ubuntu/workstation/CARLA_0.9.14_RSS/CarlaUE4/Content/Carla/Maps/Town04.osm",
-                origin=(0, 0),
-                proj_type="utm",
-            )
-        except Exception as e:
-            # print("Lanelets cant be loaded")
-            # print(e)
-            self.lanelet_data = None
+
 
     def create_client(self):
         print("Creating client")
@@ -380,12 +370,7 @@ class Vector_BEV_observer:
                 if (self.world.get_map().get_waypoint(ego_location).road_id == points_road_id[0]):
                      map_lanes[l, :points_road_id.shape[0], traffic_feat_idx["is_route"]] = 1
 
-        if self.lanelet_data is not None:
-            map_lanes = self.lanelet_data.extract_route_rules(
-                torch.tensor(map_lanes),
-                [ego_location.x, ego_location.y],
-                keys,
-            ).tolist()
+
 
         # Repeat it for all vehicles
         # map_lanes_features = map_lanes_features.repeat(self.MAX_NEIGHBORS + 1, 1, 1, 1)
