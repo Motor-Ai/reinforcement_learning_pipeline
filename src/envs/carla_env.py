@@ -421,8 +421,8 @@ class CarlaGymEnv(gym.Env):
             else: 
                 if len(global_route_ego_frame_no_padding) > 1:
                     # Action from Policy converted to Frenet to determine the target point
-                    ref_path = np.unique(global_route_ego_frame_no_padding[:,:2], axis = -1)
-                    path_x, path_y, path_yaw, path_vel, path_time = self.action_manager.get_path(action, ref_path, 
+                    # ref_path = np.unique(global_route_ego_frame_no_padding[:,:2], axis = -1)
+                    path_x, path_y, path_yaw, path_vel, path_time = self.action_manager.get_path(action, global_route_ego_frame_no_padding[:,:2], 
                                                                                                 ego_state, plan_time_range=3.0, plan_dt=0.2)
                     TARGET_PT_IDX = 2 # NOTE: PARAM to set which point to use from the planned path
                     action_point = np.array([path_x[TARGET_PT_IDX], path_y[TARGET_PT_IDX]]) # Take the second point in the planned path

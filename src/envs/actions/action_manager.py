@@ -58,7 +58,7 @@ class ActionManager:
             string rl_id # Current RL ID of the ego vehicle
 
         Parameters:
-        action_space (dict): Contains keys 'linear_acceleration', 'lateral_shift', 'manuever'.
+        action_space (matrix): Contains info in the order 'manuever', 'linear_acceleration', 'lateral_shift'.
         ego_vel_lon (float): ego current longitudinal speed.
         plan_time_range (list): [min_time, max_time, time_step] for candidate plan horizons (sec).
         plan_dt (float): path time step (sec).
@@ -71,8 +71,8 @@ class ActionManager:
         t_min, t_max, t_step = plan_time_range
 
         for i in range(self.n_samples):
-            lon_acc = action_space[i][2]
-            target_d = action_space[i][1]
+            lon_acc = action_space[i][1]
+            target_d = action_space[i][2]
             # For each candidate, sweep over plan times in range
             plan_times = [round(t, 3) for t in np.arange(t_min, t_max + t_step, t_step)]
             for plan_time in plan_times:
@@ -119,6 +119,70 @@ class ActionManager:
 
         return long_position, lateral_distance    # Clip index for neighbor points
 
+    def preprocess_path(self, ref_x, ref_y, factor=2.0, max_angle_change=np.pi/4.0):
+        """
+        Preprocess path points:
+        1. Insert extra points if spacing between consecutive points is too large.
+        2. Remove points that create sharp heading transitions.
+        
+        Args:
+            ref_x (np.array): X coordinates of path.
+            ref_y (np.array): Y coordinates of path.
+            factor (float): Threshold multiplier. If gap > factor * avg_gap, insert points.
+            max_angle_change (float): Max allowed heading change (radians) between segments.
+        
+        Returns:
+            (np.array, np.array): Processed ref_x, ref_y with adjusted points.
+        """
+        # Step 1: Fill large gaps
+        dists = np.sqrt(np.diff(ref_x)**2 + np.diff(ref_y)**2)
+        avg_dist = np.mean(dists)
+        threshold = factor * avg_dist
+
+        new_x, new_y = [ref_x[0]], [ref_y[0]]
+
+        for i in range(1, len(ref_x)):
+            dx = ref_x[i] - ref_x[i-1]
+            dy = ref_y[i] - ref_y[i-1]
+            dist = np.sqrt(dx**2 + dy**2)
+
+            if dist > threshold:
+                num_new = int(np.ceil(dist / avg_dist)) - 1
+                for j in range(1, num_new + 1):
+                    factor_j = j / (num_new + 1)
+                    new_x.append(ref_x[i-1] + dx * factor_j)
+                    new_y.append(ref_y[i-1] + dy * factor_j)
+
+            new_x.append(ref_x[i])
+            new_y.append(ref_y[i])
+
+        new_x = np.array(new_x)
+        new_y = np.array(new_y)
+
+        # Step 2: Remove sharp heading transitions
+        keep_idx = [0]  # always keep the first point
+
+        for i in range(1, len(new_x)-1):
+            # vectors before and after current point
+            v1 = np.array([new_x[i] - new_x[i-1], new_y[i] - new_y[i-1]])
+            v2 = np.array([new_x[i+1] - new_x[i], new_y[i+1] - new_y[i]])
+
+            # normalize
+            if np.linalg.norm(v1) < 1e-6 or np.linalg.norm(v2) < 1e-6:
+                continue
+            v1 = v1 / np.linalg.norm(v1)
+            v2 = v2 / np.linalg.norm(v2)
+
+            # angle between vectors
+            angle = np.arccos(np.clip(np.dot(v1, v2), -1.0, 1.0))
+
+            if angle < max_angle_change:
+                keep_idx.append(i)
+
+        keep_idx.append(len(new_x)-1)  # always keep last point
+
+        return new_x[keep_idx], new_y[keep_idx]
+
     def get_path(self, action, ref_path, ego_state, plan_time_range, plan_dt):
         plan_time_range = [1,10,0.5] # [time_min, time_max, time_step]
         plan_dt = 0.1 # seconds
@@ -131,9 +195,12 @@ class ActionManager:
             for i in range(len(ref_x) - 1)
         )
 
+        ref_x, ref_y = self.preprocess_path(ref_x, ref_y, factor=0.5)
+
         # === Generate a B-spline path with 0.1m resolution ===
         x_arr, y_arr, yaw_arr, _ = sp.calc_bspline_course_2(ref_x, ref_y, path_len, 0.1)
-        
+        print(f"Processed path to {len(x_arr)} points.")
+
         ego_vel_lon, ego_vel_lat = ego_state[-2], ego_state[-1]
 
         long_position, lateral_distance = self.compute_frenet_projection(ego_state[0], ego_state[1], x_arr, y_arr)

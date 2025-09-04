@@ -131,6 +131,7 @@ class LoggerCallback(BaseCallback):
         self.save_freq = save_freq
         self.action_buffer_0 = []
         self.action_buffer_1 = []
+        self.action_buffer_2 = []
         self.episode_rewards = []
         self.episode_lengths = []  # Track episode lengths
         self.crashes = 0
@@ -148,8 +149,10 @@ class LoggerCallback(BaseCallback):
         """Called every step during training."""
         actions_0 = self.locals["actions"][0, 0]
         actions_1 = self.locals["actions"][0, 1]
+        actions_2 = self.locals["actions"][0, 2]
         self.action_buffer_0.append(actions_0)
         self.action_buffer_1.append(actions_1)
+        self.action_buffer_2.append(actions_2)
 
         # Store episode rewards
         reward = self.locals["rewards"][0] # Assuming single agent
@@ -206,10 +209,13 @@ class LoggerCallback(BaseCallback):
             # Log action distributions
             actions_np_0 = np.array(self.action_buffer_0)
             actions_np_1 = np.array(self.action_buffer_1)
+            actions_np_2 = np.array(self.action_buffer_2)
             self.writer.add_histogram("action_distribution/maneuver", actions_np_0, self.num_timesteps)
             self.writer.add_histogram("action_distribution/long_distance", actions_np_1, self.num_timesteps)
+            self.writer.add_histogram("action_distribution/lateral_shift", actions_np_2, self.num_timesteps)
             self.action_buffer_0 = []
             self.action_buffer_1 = []
+            self.action_buffer_2 = []
 
         return True
 
