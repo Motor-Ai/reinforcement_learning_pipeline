@@ -1,17 +1,19 @@
+import os
+
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 from src.envs.observation.decision_traffic_rules.feature_indices import agent_feat_id
 
 class MatplotlibAnimationRenderer:
-    def __init__(self, save_path='/home/ratul/Workstation/motor-ai/MAI_Bench2Drive/rss_debug/temp_plots/pngs/'):
+    def __init__(self, save_path=None):
         """
         Initialize the animation renderer.
         
         Parameters:
             save_path (str): File path where each frame is saved.
         """
-        self.save_path = save_path
+        self.save_path = os.path.join(os.environ["DATA_DIR"], "temp_plots/pngs/") if save_path is None else save_path
         self.latest_ego = None
         self.latest_neighbors = None
         self.latest_map = None

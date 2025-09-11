@@ -84,7 +84,7 @@ class CarlaGymEnv(gym.Env):
         self.sim_time = 0.0
         self.timestep = 0
         self.goal_threshold = 0.5  # meters
-        self.map_path = '/home/ratul/Downloads/Tegel_map_for_Decision_1302.xodr'
+        self.map_path = os.path.join(os.environ["DATA_DIR"], 'maps/Tegel_map_for_Decision_1302.xodr')
         self.prev_distance: Optional[float] = None
         self.matplotlib_renderer: Optional[MatplotlibAnimationRenderer] = None
         self.preprocess_observation = PREPROCESS_OBSERVATION
@@ -105,7 +105,7 @@ class CarlaGymEnv(gym.Env):
         self.display_height = display_height
 
         # Connect to CARLA server and get world
-        self.client = carla.Client('localhost', 2000)  #
+        self.client = carla.Client('localhost', 2000)
         self.client.set_timeout(10.0)
         if self.use_custom_map:
             # Load the custom OpenDRIVE (.xodr) map

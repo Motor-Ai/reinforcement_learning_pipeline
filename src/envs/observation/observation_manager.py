@@ -106,17 +106,14 @@ class ObservationManager:
 class Preprocessor:
     def __init__(self):
         # Add your initialization logic here
-        self.ego_attr_keep = np.array([agent_feat_id["x"], agent_feat_id["y"], agent_feat_id['yaw'],
-                                       agent_feat_id["vx"], agent_feat_id["vy"],
-                                       agent_feat_id["length"], agent_feat_id["width"]])
-        self.neighbor_attr_keep = np.array([agent_feat_id["x"], agent_feat_id["y"], agent_feat_id['yaw'],
-                                            agent_feat_id["vx"], agent_feat_id["vy"],
-                                            agent_feat_id["length"], agent_feat_id["width"], 
-                                            agent_feat_id["class"]])
-        self.map_attr_keep = np.array([traffic_feat_idx["cl_x"], traffic_feat_idx["cl_y"], traffic_feat_idx["cl_yaw"], 
-                                       traffic_feat_idx['ll_x'], traffic_feat_idx["ll_y"], traffic_feat_idx["ll_yaw"],
-                                       traffic_feat_idx['ll_x'], traffic_feat_idx["ll_y"], traffic_feat_idx["ll_yaw"],
-                                       traffic_feat_idx["speed_limit"]])
+        self.ego_attr_keep = \
+            np.array([agent_feat_id[key] for key in ["x", "y", "yaw", "vx", "vy", "length", "width"]])
+        self.neighbor_attr_keep = \
+            np.array([agent_feat_id[key] for key in ["x", "y", "yaw", "vx", "vy", "length", "width", "class"]])
+        self.map_attr_keep = np.array([
+            traffic_feat_idx[key]
+            for key in ["cl_x", "cl_y", "cl_yaw", "ll_x", "ll_y", "ll_yaw", "rl_x", "rl_y", "rl_yaw", "speed_limit"]
+        ])
         self.FOV = 50
         self.max_speed = 80 / 3.6  # Convert km/h to m/s
         self.R_min = -350
