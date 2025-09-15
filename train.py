@@ -22,8 +22,8 @@ if __name__ == '__main__':
     eval_env = DummyVecEnv([lambda: Monitor(CarlaGymEnv(render_enabled=False))])
 
     # Apply VecNormalize (normalizes both observations and rewards)
-    env = VecNormalize(env, norm_obs=True, norm_reward=True)
-    eval_env = VecNormalize(eval_env, norm_obs=True, norm_reward=False, training=False)  # Don't normalize rewards during eval
+    env = VecNormalize(env, norm_obs=True, norm_reward=True, norm_obs_keys=["ego", "neighbors", "map_lanes", "map_crosswalks", "global_route"])
+    eval_env = VecNormalize(eval_env, norm_obs=True, norm_reward=False, training=False, norm_obs_keys=["ego", "neighbors", "map_lanes", "map_crosswalks", "global_route"])  # Don't normalize rewards during eval
 
     # Create a directory for saving models/checkpoints.
     save_dir = SAVE_PATH

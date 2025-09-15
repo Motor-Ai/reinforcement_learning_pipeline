@@ -165,10 +165,14 @@ def simulate(
                 # replace obs with done by initial state
                 obs[index] = result
         # step agents
-        # TODO obs = {k: obs[0][k] for k in obs[0] if "log_" not in k}
         # TODO obs = {k: np.stack([o[k] for o in obs]) for k in obs[0] if "log_" not in k}
-        obs = {k: np.stack([o[k] for o in obs]) for k in obs[0] if "is_" in k} | \
-              {k: v for k, v in obs[0].items() if "is_" not in k}
+        # TODO obs = {k: np.stack([o[k] for o in obs]) for k in obs[0] if "is_" in k} | \
+        # TODO       {k: v for k, v in obs[0].items() if "is_" not in k}
+        new_obs = {}
+        for k, v in obs[0].items():
+            new_obs[k] = np.stack([o[k] for o in obs]) if "is_" in k else v
+        obs = new_obs
+
         action, agent_state = agent(obs, done, agent_state)
         if isinstance(action, dict):
             action = [
