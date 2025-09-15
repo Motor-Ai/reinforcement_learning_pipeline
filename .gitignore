@@ -9,6 +9,7 @@ saved_rl_models/*
 *.code-workspace
 
 data/
+DATA_DIR/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
