@@ -40,16 +40,25 @@ class ObservationManager:
                     obs["neighbors"] = spaces.Box(low=-1, high=1, shape=(1, self.bev_info.MAX_NEIGHBORS, self.bev_info.HISTORY, 7), dtype=np.float32)
                 else:
                     obs["neighbors"] = spaces.Box(low=-np.inf, high=np.inf, shape=(1, self.bev_info.MAX_NEIGHBORS, self.bev_info.HISTORY, 24), dtype=np.float32)
-            elif obs_name == "map":
+            elif obs_name == "map_lanes":
                 if self.preprocess_observations:
-                    obs["map"] = spaces.Box(low=-1, high=1, shape=(1, self.bev_info.MAX_LANES, self.bev_info.MAX_LANE_LEN, 10), dtype=np.float32)
+                    obs["map_lanes"] = spaces.Box(low=-1, high=1, shape=(1, self.bev_info.MAX_LANES, self.bev_info.MAX_LANE_LEN, 10), dtype=np.float32)
                 else:
-                    obs["map"] = spaces.Box(low=-np.inf, high=np.inf, shape=(1, self.bev_info.MAX_LANES, self.bev_info.MAX_LANE_LEN, 46), dtype=np.float32)
+                    obs["map_lanes"] = spaces.Box(low=-np.inf, high=np.inf, shape=(1, self.bev_info.MAX_LANES, self.bev_info.MAX_LANE_LEN, 46), dtype=np.float32)
+            elif obs_name == "map_crosswalks":
+                if self.preprocess_observations:
+                    obs["map_crosswalks"] = spaces.Box(low=-1, high=1, shape=(1, self.bev_info.MAX_LANES, self.bev_info.MAX_LANE_LEN, 10), dtype=np.float32)
+                else:
+                    obs["map_crosswalks"] = spaces.Box(low=-np.inf, high=np.inf, shape=(1, self.bev_info.MAX_LANES, self.bev_info.MAX_LANE_LEN, 46), dtype=np.float32)
             elif obs_name == "global_route":
                 if self.preprocess_observations:
                     obs["global_route"] = spaces.Box(low=-1, high=1, shape=(self.bev_info.MAX_LANE_LEN, 3), dtype=np.float32)
                 else:
                     obs["global_route"] = spaces.Box(low=-np.inf, high=np.inf, shape=(self.bev_info.MAX_LANE_LEN, 3), dtype=np.float32)
+            elif obs_name == "is_first":
+                obs["is_first"] = spaces.MultiBinary(1)
+            elif obs_name == "is_terminal":
+                obs["is_terminal"] = spaces.MultiBinary(1)
             else:
                 raise ValueError(f"Unknown observation key: {obs_name}")
         return spaces.Dict(obs)
@@ -59,7 +68,7 @@ class ObservationManager:
         self.bev_info = Vector_BEV_observer(FUTURE_LEN=1)
     
     #TODO: types? global_route_ego_frame has different types in env
-    def get_obs(self, world, global_route_ego_frame: Optional[np.ndarray | torch.Tensor]=None) -> dict:
+    def get_obs(self, world, global_route_ego_frame: Optional[np.ndarray | torch.Tensor]=None, is_first=False, is_terminal=False) -> dict:
         # Get new observation from BEV observer
         if self.bev_info.client_init(world=world):
             ego_hist, neighbor_hist, map_hist, crosswalk_hist, _ = self.bev_info.update(re_reference=False)
@@ -71,6 +80,7 @@ class ObservationManager:
             ego_obs = self.bev_info.carla_to_MAI_coordinates(data=ego_hist, is_map=False)
             neighbors_obs = self.bev_info.carla_to_MAI_coordinates(data=neighbor_hist, is_map=False)
             map_obs = self.bev_info.carla_to_MAI_coordinates(data=map_hist, is_map=True)
+            crosswalk_obs = self.bev_info.carla_to_MAI_coordinates(data=crosswalk_hist, is_map=True)
             if global_route_ego_frame is None:
                 global_route_ego_frame = torch.zeros(size=(self.bev_info.MAX_LANE_LEN, 3))
             else:
@@ -80,20 +90,27 @@ class ObservationManager:
                 ego_obs = ego_obs[-2:-1]
                 neighbors_obs = neighbors_obs[-2:-1]
                 map_obs = map_obs[-2:-1]
+                crosswalk_obs = crosswalk_obs[-2:-1]
 
         else: #TODO: understand this line
-            ego_obs, neighbors_obs, map_obs = None, None, None
+            ego_obs, neighbors_obs, map_obs, crosswalk_obs = None, None, None, None
 
         observation = {}
         for obs_name in self.obs_keys:
             if obs_name == "ego":
-                observation["ego"] = ego_obs
+                observation["ego"] = torch.from_numpy(ego_obs).to(dtype=torch.float32)
             elif obs_name == "neighbors":
-                observation["neighbors"] = neighbors_obs
-            elif obs_name == "map":
-                observation["map"] = map_obs
+                observation["neighbors"] = torch.from_numpy(neighbors_obs).to(dtype=torch.float32)
+            elif obs_name == "map_lanes":
+                observation["map_lanes"] = torch.from_numpy(map_obs).to(dtype=torch.float32)
+            elif obs_name == "map_crosswalks":
+                observation["map_crosswalks"] = torch.from_numpy(crosswalk_obs).to(dtype=torch.float32)
             elif obs_name == "global_route":
                 observation["global_route"] = global_route_ego_frame
+            elif obs_name == "is_first":
+                observation["is_first"] = is_first
+            elif obs_name == "is_terminal":
+                observation["is_terminal"] = is_terminal
             else:
                 raise ValueError(f"Unknown observation key: {obs_name}")
 
@@ -114,6 +131,7 @@ class Preprocessor:
             traffic_feat_idx[key]
             for key in ["cl_x", "cl_y", "cl_yaw", "ll_x", "ll_y", "ll_yaw", "rl_x", "rl_y", "rl_yaw", "speed_limit"]
         ])
+        self.crosswalk_attr_keep = np.array([traffic_feat_idx[key] for key in ["cl_x", "cl_y"]])
         self.FOV = 50
         self.max_speed = 80 / 3.6  # Convert km/h to m/s
         self.R_min = -350
@@ -127,14 +145,18 @@ class Preprocessor:
         # remove unnecessary attributes
         ego_data = observation['ego'][..., self.ego_attr_keep]
         neighbors_data = observation['neighbors'][..., self.ego_attr_keep] # keep the same attributes as ego
-        map_data = observation['map'][..., self.map_attr_keep]
+        map_data = observation['map_lanes'][..., self.map_attr_keep]
+        map_crosswalks = observation['map_crosswalks'][..., self.crosswalk_attr_keep]
 
         #TODO: modularize
         processed_observation = {
             'ego': ego_data,
             'neighbors': neighbors_data,
-            'map': map_data,
-            'global_route': observation['global_route']
+            'map_lanes': map_data,
+            'map_crosswalks': map_crosswalks,
+            'global_route': observation['global_route'],
+            'is_first': observation['is_first'],
+            'is_terminal': observation['is_terminal'],
         }
 
         # processed_observation = self.normalize(processed_observation)
@@ -160,7 +182,7 @@ class Preprocessor:
                 observation[key][..., 2] /= np.pi
                 observation[key][..., [3, 4]] /= self.max_speed
                 observation[key][..., [3, 4]] = (observation[key][..., [3, 4]] - 0.5) * 2
-            elif key == 'map':
+            elif key == 'map_lanes':
                 observation[key][..., [0, 1, 3, 4, 6, 7]] /= self.FOV
                 observation[key][..., [2, 5, 8]] /= np.pi
                 observation[key][..., 9] /= self.max_speed

@@ -1,121 +1,54 @@
-# Mastering Diverse Domains through World Models
+# dreamerv3-torch
+Pytorch implementation of [Mastering Diverse Domains through World Models](https://arxiv.org/abs/2301.04104v1). DreamerV3 is a scalable algorithm that outperforms previous approaches across various domains with fixed hyperparameters.
 
-A reimplementation of [DreamerV3][paper], a scalable and general reinforcement
-learning algorithm that masters a wide range of applications with fixed
-hyperparameters.
+## Instructions
 
-![DreamerV3 Tasks](https://user-images.githubusercontent.com/2111293/217647148-cbc522e2-61ad-4553-8e14-1ecdc8d9438b.gif)
+### Method 1: Manual
 
-If you find this code useful, please reference in your paper:
-
+Get dependencies with python 3.11:
 ```
-@article{hafner2023dreamerv3,
-  title={Mastering Diverse Domains through World Models},
-  author={Hafner, Danijar and Pasukonis, Jurgis and Ba, Jimmy and Lillicrap, Timothy},
-  journal={arXiv preprint arXiv:2301.04104},
-  year={2023}
-}
+pip install -r requirements.txt
 ```
-
-To learn more:
-
-- [Research paper][paper]
-- [Project website][website]
-- [Twitter summary][tweet]
-
-## DreamerV3
-
-DreamerV3 learns a world model from experiences and uses it to train an actor
-critic policy from imagined trajectories. The world model encodes sensory
-inputs into categorical representations and predicts future representations and
-rewards given actions.
-
-![DreamerV3 Method Diagram](https://user-images.githubusercontent.com/2111293/217355673-4abc0ce5-1a4b-4366-a08d-64754289d659.png)
-
-DreamerV3 masters a wide range of domains with a fixed set of hyperparameters,
-outperforming specialized methods. Removing the need for tuning reduces the
-amount of expert knowledge and computational resources needed to apply
-reinforcement learning.
-
-![DreamerV3 Benchmark Scores](https://github.com/danijar/dreamerv3/assets/2111293/0fe8f1cf-6970-41ea-9efc-e2e2477e7861)
-
-Due to its robustness, DreamerV3 shows favorable scaling properties. Notably,
-using larger models consistently increases not only its final performance but
-also its data-efficiency. Increasing the number of gradient steps further
-increases data efficiency.
-
-![DreamerV3 Scaling Behavior](https://user-images.githubusercontent.com/2111293/217356063-0cf06b17-89f0-4d5f-85a9-b583438c98dd.png)
-
-# Instructions
-
-The code has been tested on Linux and Mac and requires Python 3.11+.
-
-## Docker
-
-You can either use the provided `Dockerfile` that contains instructions or
-follow the manual instructions below.
-
-## Manual
-
-Install [JAX][jax] and then the other dependencies:
-
-```sh
-pip install -U -r requirements.txt
+Run training on DMC Vision:
 ```
-
-Training script:
-
-```sh
-python dreamerv3/main.py \
-  --logdir ~/logdir/dreamer/{timestamp} \
-  --configs crafter \
-  --run.train_ratio 32
+python3 dreamer.py --configs dmc_vision --task dmc_walker_walk --logdir ./logdir/dmc_walker_walk
 ```
-
-To reproduce results, train on the desired task using the corresponding config,
-such as `--configs atari --task atari_pong`.
-
-View results:
-
-```sh
-pip install -U scope
-python -m scope.viewer --basedir ~/logdir --port 8000
+Monitor results:
 ```
+tensorboard --logdir ./logdir
+```
+To set up Atari or Minecraft environments, please check the scripts located in [env/setup_scripts](https://github.com/NM512/dreamerv3-torch/tree/main/envs/setup_scripts).
 
-Scalar metrics are also writting as JSONL files.
+### Method 2: Docker
 
-# Tips
+Please refer to the Dockerfile for the instructions, as they are included within.
 
-- All config options are listed in `dreamerv3/configs.yaml` and you can
-  override them as flags from the command line.
-- The `debug` config block reduces the network size, batch size, duration
-  between logs, and so on for fast debugging (but does not learn a good model).
-- By default, the code tries to run on GPU. You can switch to CPU or TPU using
-  the `--jax.platform cpu` flag.
-- You can use multiple config blocks that will override defaults in the
-  order they are specified, for example `--configs crafter size50m`.
-- By default, metrics are printed to the terminal, appended to a JSON lines
-  file, and written as Scope summaries. Other outputs like WandB and
-  TensorBoard can be enabled in the training script.
-- If you get a `Too many leaves for PyTreeDef` error, it means you're
-  reloading a checkpoint that is not compatible with the current config. This
-  often happens when reusing an old logdir by accident.
-- If you are getting CUDA errors, scroll up because the cause is often just an
-  error that happened earlier, such as out of memory or incompatible JAX and
-  CUDA versions. Try `--batch_size 1` to rule out an out of memory error.
-- Many environments are included, some of which require installing additional
-  packages. See the `Dockerfile` for reference.
-- To continue stopped training runs, simply run the same command line again and
-  make sure that the `--logdir` points to the same directory.
+## Benchmarks
+So far, the following benchmarks can be used for testing.
+| Environment        | Observation | Action | Budget | Description |
+|-------------------|---|---|---|-----------------------|
+| [DMC Proprio](https://github.com/deepmind/dm_control) | State | Continuous | 500K | DeepMind Control Suite with low-dimensional inputs. |
+| [DMC Vision](https://github.com/deepmind/dm_control) | Image | Continuous |1M| DeepMind Control Suite with high-dimensional images inputs. |
+| [Atari 100k](https://github.com/openai/atari-py) | Image | Discrete |400K| 26 Atari games. |
+| [Crafter](https://github.com/danijar/crafter) | Image | Discrete |1M| Survival environment to evaluates diverse agent abilities.|
+| [Minecraft](https://github.com/minerllabs/minerl) | Image and State |Discrete |100M| Vast 3D open world.|
+| [Memory Maze](https://github.com/jurgisp/memory-maze) | Image |Discrete |100M| 3D mazes to evaluate RL agents' long-term memory.|
 
-# Disclaimer
+## Results
+#### DMC Proprio
+![dmcproprio](imgs/dmcproprio.png)
+#### DMC Vision
+![dmcvision](imgs/dmcvision.png)
+#### Atari 100k
+![atari100k](imgs/atari100k.png)
 
-This repository contains a reimplementation of DreamerV3 based on the open
-source DreamerV2 code base. It is unrelated to Google or DeepMind. The
-implementation has been tested to reproduce the official results on a range of
-environments.
+#### Crafter
+<img src="https://github.com/NM512/dreamerv3-torch/assets/70328564/a0626038-53f6-4300-a622-7ac257f4c290" width="300" height="150" />
 
-[jax]: https://github.com/google/jax#pip-installation-gpu-cuda
-[paper]: https://arxiv.org/pdf/2301.04104v1.pdf
-[website]: https://danijar.com/dreamerv3
-[tweet]: https://twitter.com/danijarh/status/1613161946223677441
+## Acknowledgments
+This code is heavily inspired by the following works:
+- danijar's Dreamer-v3 jax implementation: https://github.com/danijar/dreamerv3
+- danijar's Dreamer-v2 tensorflow implementation: https://github.com/danijar/dreamerv2
+- jsikyoon's Dreamer-v2 pytorch implementation: https://github.com/jsikyoon/dreamer-torch
+- RajGhugare19's Dreamer-v2 pytorch implementation: https://github.com/RajGhugare19/dreamerv2
+- denisyarats's DrQ-v2 original implementation: https://github.com/facebookresearch/drqv2

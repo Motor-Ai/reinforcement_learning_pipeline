@@ -1,25 +1,15 @@
-ale_py==0.9.0
-autorom[accept-rom-license]==0.6.1
-av
-chex
-colored_traceback
-einops
-elements>=3.19.1
-google-resumable-media>=2.7.2
-granular>=0.20.3
-ipdb
-jax[cuda12]==0.4.33
-jaxtyping
-ninjax>=3.5.1
-numpy<2  # DMLab: <2, MineRLv1.0: <1.24
-nvidia-cuda-nvcc-cu12<=12.2
-optax
-portal>=3.5.0
-scope>=0.4.4
-tqdm
-carla==0.9.15
-pygame==2.6.1; python_version >= "3.6"
-gymnasium==1.2.0; python_version >= "3.10"
-networkx==3.4.2; python_full_version >= "3.9.0" and python_version >= "3.10"
-torch==2.8.0; python_full_version >= "3.9.0" and python_version >= "3.9"
-shapely==2.1.1; python_version >= "3.10"
+torch==2.4.1
+matplotlib==3.5.0
+ruamel.yaml==0.17.4
+moviepy==1.0.3
+einops==0.3.0
+protobuf==3.20.0
+gym==0.22.0
+memory_maze==1.0.3
+crafter==1.8.0
+opencv-python==4.7.0.72
+numpy==1.23.5
+tensorboard==2.17.1
+PyOpenGL==3.1.1a1
+gym[atari]
+ale-py

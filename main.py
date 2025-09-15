@@ -56,7 +56,7 @@ if __name__ == '__main__':
             save_dir = SAVE_PATH
             os.makedirs(save_dir, exist_ok=True)
 
-                # Create the custom callback: save a checkpoint every 1,000 timesteps.
+            # Create the custom callback: save a checkpoint every 1,000 timesteps.
             checkpoint_callback = SaveBestlCallback(
                 eval_env=eval_env,
                 save_freq=1000,

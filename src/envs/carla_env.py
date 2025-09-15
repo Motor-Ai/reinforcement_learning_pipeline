@@ -163,7 +163,7 @@ class CarlaGymEnv(gym.Env):
         self.index_map = {1: 1, 2: 5, 3: 10, 4: 15}
 
         self.observation_manager = ObservationManager(
-            obs_keys=["ego", "neighbors", "map", "global_route"],
+            obs_keys=["ego", "neighbors", "map_lanes", "map_crosswalks", "global_route", "is_first", "is_terminal"],
             preprocess=self.preprocess_observation,
         )
         self.observation_space = self.observation_manager.observation_space
@@ -307,7 +307,7 @@ class CarlaGymEnv(gym.Env):
                     life_time=self.scene_duration
                 )
         
-        observation = self.observation_manager.get_obs(self.world)
+        observation = self.observation_manager.get_obs(self.world, is_first=True, is_terminal=False)
 
         info = {}
         return observation, info
@@ -461,11 +461,6 @@ class CarlaGymEnv(gym.Env):
         self.sim_time = self.timestep * self.frequency
         info["sim_time"] = self.sim_time
 
-        observation = self.observation_manager.get_obs(self.world, global_route_ego_frame)
-
-        self.obs = observation  # Save the latest observation for rendering
-
-
         ######################### Reward and termination ############################
         # Compute distance to goal
         distance_to_goal = self.compute_distance_to_goal(target_location)
@@ -482,6 +477,10 @@ class CarlaGymEnv(gym.Env):
         if self.collision_detected:
             terminated = True  # End episode on collision
         info["crash"] = self.collision_detected
+
+        # Get the agent's observation
+        observation = self.observation_manager.get_obs(self.world, global_route_ego_frame, is_first=False, is_terminal=truncated or terminated)
+        self.obs = observation  # Save the latest observation for rendering
 
         return observation, reward, terminated, truncated, info
 
