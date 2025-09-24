@@ -7,6 +7,7 @@ import tools
 from src.envs.carla_env import CarlaGymEnv
 from src.envs.observation.observation_manager import Preprocessor
 from src.models.dipp_predictor_py.dipp_carla import DIPPEncoder
+from src.models.active_inference.small_encoder import SmallEncoder
 
 to_np = lambda x: x.detach().cpu().numpy()
 
@@ -36,7 +37,7 @@ class WorldModel(nn.Module):
         self._use_amp = True if config.precision == 16 else False
         self._config = config
         shapes = {k: tuple(v.shape) for k, v in obs_space.spaces.items()}
-        self.encoder = DIPPEncoder()  # networks.MultiEncoder(shapes, **config.encoder)
+        self.encoder = SmallEncoder()  # DIPPEncoder() networks.MultiEncoder(shapes, **config.encoder)
         self.embed_size = self.encoder.outdim
         self.dynamics = networks.RSSM(
             config.dyn_stoch,

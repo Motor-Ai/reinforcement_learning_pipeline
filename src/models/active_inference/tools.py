@@ -149,6 +149,7 @@ def simulate(
     else:
         step, episode, done, length, obs, agent_state, reward = state
     while (steps and step < steps) or (episodes and episode < episodes):
+        print(f"step: {step}/{steps}")  # TODO
         # reset envs if necessary
         if done.any():
             indices = [index for index, d in enumerate(done) if d]
@@ -315,6 +316,9 @@ def save_episodes(directory, episodes):
 
 
 def from_generator(generator, batch_size):
+    """
+    Create a batch of data from a generator of episode.
+    """
     while True:
         batch = []
         for _ in range(batch_size):
@@ -333,9 +337,10 @@ def sample_episodes(episodes, length, seed=0):
     while True:
         size = 0
         ret = None
-        p = np.array(
-            [len(next(iter(episode.values()))) for episode in episodes.values()]
-        )
+        p = np.array([
+            len(next(iter(episode.values())))
+            for episode in episodes.values()
+        ])
         p = p / np.sum(p)
         while size < length:
             episode = np_random.choice(list(episodes.values()), p=p)

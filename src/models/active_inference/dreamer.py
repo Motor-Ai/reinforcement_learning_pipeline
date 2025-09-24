@@ -143,7 +143,7 @@ def make_dataset(episodes, config):
     return dataset
 
 
-def make_env(config, mode, id):
+def make_env(config):
     suite, task = config.task.split("_", 1)
     if suite == "carla":
         env = CarlaGymEnv()
@@ -152,15 +152,16 @@ def make_env(config, mode, id):
     env = wrappers.TimeLimit(env, config.time_limit)
     env = wrappers.SelectAction(env, key="action")
     env = wrappers.UUID(env)
-    if suite == "minecraft":
-        env = wrappers.RewardObs(env)
     return env
 
 
 def main(config):
-    logdir = pathlib.Path(config.logdir.replace("DATA_DIR", os.environ["DATA_DIR"]))
-    traindir = pathlib.Path(config.traindir.replace("DATA_DIR", os.environ["DATA_DIR"]))
-    evaldir = pathlib.Path(config.evaldir.replace("DATA_DIR", os.environ["DATA_DIR"]))
+    config.logdir = config.logdir.replace("DATA_DIR", os.environ["DATA_DIR"])
+    config.traindir = config.traindir.replace("DATA_DIR", os.environ["DATA_DIR"])
+    config.evaldir = config.evaldir.replace("DATA_DIR", os.environ["DATA_DIR"])
+    logdir = pathlib.Path(config.logdir)
+    traindir = pathlib.Path(config.traindir)
+    evaldir = pathlib.Path(config.evaldir)
 
     tools.set_seed_everywhere(config.seed)
     if config.deterministic_run:
@@ -192,9 +193,8 @@ def main(config):
     else:
         directory = config.evaldir
     eval_eps = tools.load_episodes(directory, limit=1)
-    make = lambda mode, id: make_env(config, mode, id)
-    train_envs = [make("train", i) for i in range(config.envs)]
-    eval_envs = [make("eval", i) for i in range(config.envs)]
+    train_envs = [make_env(config) for _ in range(config.envs)]
+    eval_envs = [make_env(config) for _ in range(config.envs)]
     if config.parallel:
         train_envs = [Parallel(env, "process") for env in train_envs]
         eval_envs = [Parallel(env, "process") for env in eval_envs]
@@ -259,21 +259,21 @@ def main(config):
     # make sure eval will be executed once after config.steps
     while agent._step < config.steps + config.eval_every:
         logger.write()
-        if config.eval_episode_num > 0:
-            print("Start evaluation.")
-            eval_policy = functools.partial(agent, training=False)
-            tools.simulate(
-                eval_policy,
-                eval_envs,
-                eval_eps,
-                config.evaldir,
-                logger,
-                is_eval=True,
-                episodes=config.eval_episode_num,
-            )
-            # TODO if config.video_pred_log:
-            # TODO     video_pred = agent._wm.video_pred(next(eval_dataset))
-            # TODO     logger.video("eval_openl", to_np(video_pred))
+        # TODO if config.eval_episode_num > 0:
+        # TODO     print("Start evaluation.")
+        # TODO     eval_policy = functools.partial(agent, training=False)
+        # TODO     tools.simulate(
+        # TODO         eval_policy,
+        # TODO         eval_envs,
+        # TODO         eval_eps,
+        # TODO         config.evaldir,
+        # TODO         logger,
+        # TODO         is_eval=True,
+        # TODO         episodes=config.eval_episode_num,
+        # TODO     )
+        # TODO     # TODO if config.video_pred_log:
+        # TODO     # TODO     video_pred = agent._wm.video_pred(next(eval_dataset))
+        # TODO     # TODO     logger.video("eval_openl", to_np(video_pred))
         print("Start training.")
         state = tools.simulate(
             agent,

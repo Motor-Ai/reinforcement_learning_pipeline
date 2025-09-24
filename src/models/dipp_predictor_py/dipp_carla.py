@@ -85,14 +85,13 @@ class CrosswalkEncoder(nn.Module):
 class Agent2Agent(nn.Module):
     def __init__(self):
         super(Agent2Agent, self).__init__()
-        encoder_layer = nn.TransformerEncoderLayer(d_model=256, nhead=8, dim_feedforward=1024, activation='relu',
-                                                   batch_first=True)
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=256, nhead=8, dim_feedforward=1024, activation='relu', batch_first=True
+        )
         self.interaction_net = nn.TransformerEncoder(encoder_layer, num_layers=2)
 
     def forward(self, inputs, mask=None):
-        output = self.interaction_net(inputs, src_key_padding_mask=mask)
-
-        return output
+        return self.interaction_net(inputs, src_key_padding_mask=mask)
 
 
 # Transformer modules
