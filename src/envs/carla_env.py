@@ -536,25 +536,32 @@ class CarlaGymEnv(gym.Env):
         desired_lane_point = route_xy[idx]
         return desired_lane_yaw, desired_lane_point
 
-    def compute_distance_to_goal(self, goal_location: carla.Location) -> float:
+    def compute_distance_to_goal(self, start_location: carla.Location) -> float:
         """
-        Compute the remaining distance to the goal by summing the route distances
-        from the closest point to the goal.
+        Compute the distance between the start_location and the goal location.
+        Works by summing the distance between the start_location and the closest
+        waypoint in the global_route, and the difference between the successive
+        waypoints in the global_route.
+
+        For example, in the following the distance to the goal will be the distance long the line 4-1-2-3.
+        Global route =   0--1--2--3
+                            |
+        Start location =    4
 
         Args:
-            action_xy: The agent's current position as (x, y).
+            start_location: The start location as (x, y).
 
         Returns:
             distance_to_goal (float): The accumulated distance along the global route.
         """
         # Compute distance to goal
-        action_xy = np.array([goal_location.x, goal_location.y])
+        start_location = np.array([start_location.x, start_location.y])
 
         # Extract (x, y) positions of the route
         route_xy = self.global_route[:, :2]
 
         # Find the closest point on the global route
-        distances = np.linalg.norm(route_xy - action_xy, axis=1)  # Distance to all route points
+        distances = np.linalg.norm(route_xy - start_location, axis=1)  # Distance to all route points
         closest_idx = np.argmin(distances)  # Index of the closest point
 
         # Compute cumulative distance from the closest point to the goal
