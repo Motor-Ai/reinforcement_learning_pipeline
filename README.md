@@ -56,13 +56,14 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
 
 ### Install using poetry
 
-1. install poetry globally:
+1. Install poetry globally:
     ```bash
     sudo apt install python3-poetry
     ```
-2. install dependencies inside the project folder:
+2. Create venv and install dependencies inside the project folder:
     ```bash
     cd <project folder>
+    poetry config --local virtualenvs.in-project true
     poetry install
     ```
 
