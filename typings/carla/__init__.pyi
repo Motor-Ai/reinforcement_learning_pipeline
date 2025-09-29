@@ -4343,7 +4343,7 @@ class Osm2OdrSettings:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 import numpy as np
 
 import command
@@ -4372,7 +4372,7 @@ class Sensor(Actor):
 	is_listening: bool
 	"""When True the sensor will be waiting for data."""
 
-	def listen(self, callback: function):
+	def listen(self, callback: Callable):
 		"""
 		The function the sensor will be calling to every time a new measurement is received. This function needs for an argument containing an object type carla.SensorData to work with.
 
