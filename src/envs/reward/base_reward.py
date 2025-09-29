@@ -24,6 +24,7 @@ class Reward:
         - Reaching the goal (+50)
         - Collision (-50)
         - Time penalty (-1 per step until goal is reached)
+        - Lane invasion (-25 per illegal lane invasion)
 
         Args:
             distance_to_goal (float): Current distance to the goal.
