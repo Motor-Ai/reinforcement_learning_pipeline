@@ -493,7 +493,8 @@ class CarlaGymEnv(gym.Env):
             self.collision_detected,
             self.timestep,
             self.lane_invasions,
-            self.ego_vehicle
+            self.ego_vehicle,
+            self.world.get_map()
         )
         self.lane_invasions = []
         self.prev_distance = distance_to_goal

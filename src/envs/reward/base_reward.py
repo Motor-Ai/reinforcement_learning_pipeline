@@ -20,6 +20,7 @@ class Reward:
         timestep: int,
         lane_invasions: List[carla.LaneInvasionEvent],
         ego_vehicle: carla.Vehicle,
+        world_map: carla.Map
     ) -> float:
         """
         Compute the reward based on:
@@ -31,6 +32,7 @@ class Reward:
         - Red light violation (-1 per speed unit)
         - Driving over the speed limit (-1 per speed unit over 30 km/h)
         - Driving under the speed limit without reason (-1 per speed unit under 25 km/h)
+        - Driving on the sidewalks (-25)
 
         Args:
             distance_to_goal (float): Current distance to the goal.
@@ -39,6 +41,7 @@ class Reward:
             timestep (int): Current timestep in the episode.
             lane_invasions (list of lane invasion events): one event for each lane invasion.
             ego_vehicle (carla.Vehicle): the ego vehicle.
+            world_map (carla.Map): The world map.
         """
         reward = 0.0
 
@@ -79,5 +82,10 @@ class Reward:
         # Penalise the agent for driving too slowly (below 25 km/h = 6.944 m/s).
         if not blocked_at_red_light and not goal_reached and ego_speed < 6.944:
             reward -= self.velocity_penalty * (6.944 - ego_speed)
+
+        # Penalise the agent for driving on the sidewalks.
+        current_waypoint = world_map.get_waypoint(ego_vehicle.get_location())
+        if current_waypoint.lane_type == carla.LaneType.Sidewalk:
+            reward -= 25
 
         return reward
