@@ -8,6 +8,7 @@ class Reward:
     def __init__(self, scene_duration: float, step_frequecny: float):
         self.episode_length = int(scene_duration / step_frequecny)
         self.time_penalty = -1.0
+        self.velocity_penalty = 1.0
         self.goal_threshold = 0.5 # in meters
 
     def __call__(
@@ -16,7 +17,8 @@ class Reward:
         prev_distance: float,
         collision: bool,
         timestep: int,
-        lane_invasions: List[carla.LaneInvasionEvent]
+        lane_invasions: List[carla.LaneInvasionEvent],
+        ego_vehicle: carla.Vehicle,
     ) -> float:
         """
         Compute the reward based on:
@@ -25,6 +27,7 @@ class Reward:
         - Collision (-50)
         - Time penalty (-1 per step until goal is reached)
         - Lane invasion (-25 per illegal lane invasion)
+        - Red light violation (-1 per speed unit)
 
         Args:
             distance_to_goal (float): Current distance to the goal.
@@ -32,6 +35,7 @@ class Reward:
             collision (bool): Whether a collision has occurred.
             timestep (int): Current timestep in the episode.
             lane_invasions (list of lane invasion events): one event for each lane invasion.
+            ego_vehicle (carla.Vehicle): the ego vehicle.
         """
         reward = 0.0
 
@@ -54,5 +58,13 @@ class Reward:
             for crossed_lane_marking in lane_invasion.crossed_lane_markings:
                 if crossed_lane_marking.lane_change == carla.LaneChange.NONE:
                     reward -= 25
+
+        # Add penalty if the agent is moving, while at a red traffic light.
+        if ego_vehicle.is_at_traffic_light():
+            traffic_light = ego_vehicle.get_traffic_light()
+            if traffic_light.state == carla.TrafficLightState.Red:
+                ego_velocity = ego_vehicle.get_velocity()
+                reward -= self.velocity_penalty * ego_velocity.x
+                reward -= self.velocity_penalty * ego_velocity.y
 
         return reward

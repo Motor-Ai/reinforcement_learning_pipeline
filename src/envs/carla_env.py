@@ -487,7 +487,14 @@ class CarlaGymEnv(gym.Env):
         ######################### Reward and termination ############################
         # Compute distance to goal
         distance_to_goal = self.compute_distance_to_goal(target_location)
-        reward = self.reward_func(distance_to_goal, self.prev_distance, self.collision_detected, self.timestep, self.lane_invasions)
+        reward = self.reward_func(
+            distance_to_goal,
+            self.prev_distance,
+            self.collision_detected,
+            self.timestep,
+            self.lane_invasions,
+            self.ego_vehicle
+        )
         self.lane_invasions = []
         self.prev_distance = distance_to_goal
         info["distance_to_goal"] = distance_to_goal
