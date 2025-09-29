@@ -1,3 +1,4 @@
+import math
 from typing import List
 
 import carla
@@ -28,6 +29,8 @@ class Reward:
         - Time penalty (-1 per step until goal is reached)
         - Lane invasion (-25 per illegal lane invasion)
         - Red light violation (-1 per speed unit)
+        - Driving over the speed limit (-1 per speed unit over 30 km/h)
+        - Driving under the speed limit without reason (-1 per speed unit under 25 km/h)
 
         Args:
             distance_to_goal (float): Current distance to the goal.
@@ -60,11 +63,21 @@ class Reward:
                     reward -= 25
 
         # Add penalty if the agent is moving, while at a red traffic light.
+        ego_velocity = ego_vehicle.get_velocity()
+        ego_speed = math.sqrt(ego_velocity.x ** 2 + ego_velocity.y ** 2)
+        blocked_at_red_light = False
         if ego_vehicle.is_at_traffic_light():
             traffic_light = ego_vehicle.get_traffic_light()
             if traffic_light.state == carla.TrafficLightState.Red:
-                ego_velocity = ego_vehicle.get_velocity()
-                reward -= self.velocity_penalty * ego_velocity.x
-                reward -= self.velocity_penalty * ego_velocity.y
+                blocked_at_red_light = True
+                reward -= self.velocity_penalty * ego_speed
+
+        # Penalise the agent for driving too fast (over 30 km/h = 8.333 m/s).
+        if 8.333 < ego_speed:
+            reward -= self.velocity_penalty * (ego_speed - 8.333)
+
+        # Penalise the agent for driving too slowly (below 25 km/h = 6.944 m/s).
+        if not blocked_at_red_light and not goal_reached and ego_speed < 6.944:
+            reward -= self.velocity_penalty * (6.944 - ego_speed)
 
         return reward
