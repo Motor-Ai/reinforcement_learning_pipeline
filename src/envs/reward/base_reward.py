@@ -30,7 +30,7 @@ class Reward:
             prev_distance (float): Previous distance to the goal.
             collision (bool): Whether a collision has occurred.
             timestep (int): Current timestep in the episode.
-            lane_invasions (list of lane invasion events): .
+            lane_invasions (list of lane invasion events): one event for each lane invasion.
         """
         reward = 0.0
 
