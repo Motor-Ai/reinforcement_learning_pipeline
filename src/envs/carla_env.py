@@ -211,13 +211,13 @@ class CarlaGymEnv(gym.Env):
         global_point = (R @ action.reshape(2, 1)).reshape(2,) + ego_position
         return global_point
 
-    def _on_collision(self, event):
+    def _on_collision(self, event: carla.CollisionEvent):
         """
         Callback for collision events. Sets the collision flag.
         """
         self.collision_detected = True
 
-    def _on_lane_invasion(self, event):
+    def _on_lane_invasion(self, event: carla.LaneInvasionEvent):
         """
         Callback for lane invasion events. Store line invasion events.
         """
@@ -281,7 +281,7 @@ class CarlaGymEnv(gym.Env):
             self.camera = self.world.spawn_actor(camera_bp, camera_transform, attach_to=self.ego_vehicle)
             assert isinstance(self.camera, carla.Sensor), "Camera is not a Sensor."
             self.actor_list.append(self.camera)
-            self.camera.listen(lambda image: self.process_image(image, self.screen)) # type: ignore[list-item, return-value]
+            self.camera.listen(lambda image: self.process_image(image, self.screen))
 
         # Attach Collision Sensor to Ego Vehicle
         collision_bp = self.blueprint_library.find('sensor.other.collision')
@@ -289,7 +289,7 @@ class CarlaGymEnv(gym.Env):
         self.collision_sensor = self.world.spawn_actor(collision_bp, collision_transform, attach_to=self.ego_vehicle)
         assert isinstance(self.collision_sensor, carla.Sensor), "Collision sensor is not a Sensor."
         self.actor_list.append(self.collision_sensor)
-        self.collision_sensor.listen(lambda event: self._on_collision(event)) # type: ignore[list-item, return-value]
+        self.collision_sensor.listen(lambda event: self._on_collision(event))
 
         # Attach a lane invasion sensor to ego vehicle.
         lane_invasion_bp = self.world.get_blueprint_library().find('sensor.other.lane_invasion')
