@@ -168,8 +168,11 @@ class CarlaGymEnv(gym.Env):
         )
         self.observation_space = self.observation_manager.observation_space
 
-        # Initialize collision flag
+        # Initialize collision flag.
         self.collision_detected = False
+
+        # A list of lane invasion events.
+        self.lane_invasions = []
 
         # Call reset to start the simulation.
         self.reset()
@@ -213,6 +216,12 @@ class CarlaGymEnv(gym.Env):
         Callback for collision events. Sets the collision flag.
         """
         self.collision_detected = True
+
+    def _on_lane_invasion(self, event):
+        """
+        Callback for lane invasion events. Store line invasion events.
+        """
+        self.lane_invasions.append(event)
 
     def _cleanup(self):
         """
@@ -279,6 +288,13 @@ class CarlaGymEnv(gym.Env):
         assert isinstance(self.collision_sensor, carla.Sensor), "Collision sensor is not a Sensor."
         self.actor_list.append(self.collision_sensor)
         self.collision_sensor.listen(lambda event: self._on_collision(event)) # type: ignore[list-item, return-value]
+
+        # Attach a lane invasion sensor to ego vehicle.
+        lane_invasion_bp = self.world.get_blueprint_library().find('sensor.other.lane_invasion')
+        lane_invasion_transform = carla.Transform(carla.Location(x=0, y=0, z=0))
+        self.lane_invasion_sensor = self.world.spawn_actor(lane_invasion_bp, lane_invasion_transform, attach_to=self.ego_vehicle)
+        assert isinstance(self.lane_invasion_sensor, carla.Sensor), "Lane invasion sensor is not a Sensor."
+        self.lane_invasion_sensor.listen(lambda event: self._on_lane_invasion(event))
 
         # Spawn other vehicles on autopilot
         self.vehicles = []
@@ -469,7 +485,8 @@ class CarlaGymEnv(gym.Env):
         ######################### Reward and termination ############################
         # Compute distance to goal
         distance_to_goal = self.compute_distance_to_goal(target_location)
-        reward = self.reward_func(distance_to_goal, self.prev_distance, self.collision_detected, self.timestep)
+        reward = self.reward_func(distance_to_goal, self.prev_distance, self.collision_detected, self.timestep, self.lane_invasions)
+        self.lane_invasions = []
         info["distance_to_goal"] = distance_to_goal
 
         # Check if goal is reached
