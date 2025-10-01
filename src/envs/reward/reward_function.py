@@ -1,8 +1,9 @@
 import math
 from functools import partial
-from typing import Any
+from typing import Any, List
 
 import carla
+from typing_extensions import Self
 
 
 class RewardData:
@@ -10,12 +11,12 @@ class RewardData:
     A class that provide access to variables that can be used in the reward sub-function.
     """
 
-    def __init__(self, env):
+    def __init__(self, env: 'CarlaGymEnv') -> None:
         self.env = env
         self.data = {}
         self.getters = {
             "prev_distance": self.get_previous_distance,
-            "distance_to_goal": self.compute_distance_to_goal,
+            "distance_to_goal": self.get_distance_to_goal,
             "collision": self.get_collision_detected,
             "episode_length": self.get_episode_length,
             "timestep": self.get_timestep,
@@ -40,35 +41,35 @@ class RewardData:
     def __setitem__(self, key: str, value: Any) -> None:
         self.data[key] = value
 
-    def compute_distance_to_goal(self) -> float:
+    def get_distance_to_goal(self) -> float:
         return self.env.compute_distance_to_goal(self.env.ego_vehicle.get_location())
 
-    def get_previous_distance(self):
+    def get_previous_distance(self) -> float:
         return self.env.prev_distance
 
-    def get_collision_detected(self):
+    def get_collision_detected(self) -> bool:
         return self.env.collision_detected
 
-    def get_episode_length(self):
+    def get_episode_length(self) -> int:
         return int(self.env.scene_duration / self.env.frequency)
 
-    def get_timestep(self):
+    def get_timestep(self) -> int:
         return self.env.timestep
 
-    def get_lane_invasions(self):
+    def get_lane_invasions(self) -> List[carla.LaneInvasionEvent]:
         return self.env.lane_invasions
 
-    def get_ego_speed(self):
+    def get_ego_speed(self) -> float:
         ego_velocity = self.env.ego_vehicle.get_velocity()
         return math.sqrt(ego_velocity.x ** 2 + ego_velocity.y ** 2)
 
-    def get_current_waypoint(self):
+    def get_current_waypoint(self) -> carla.Waypoint:
         return self.env.world.get_map().get_waypoint(self.env.ego_vehicle.get_location())
 
-    def get_ego_vehicle(self):
+    def get_ego_vehicle(self) -> carla.Vehicle:
         return self.env.ego_vehicle
 
-    def get_blocked_at_red_light(self):
+    def get_blocked_at_red_light(self) -> bool:
         if self.env.ego_vehicle.is_at_traffic_light():
             traffic_light = self.env.ego_vehicle.get_traffic_light()
             if traffic_light.state == carla.TrafficLightState.Red:
@@ -76,8 +77,7 @@ class RewardData:
         return False
 
     @staticmethod
-    def get_every_timestep_penalty():
-        # By default, there is no penalty at each time step.
+    def get_every_timestep_penalty() -> float:
         return 0.0
 
 
@@ -86,7 +86,7 @@ class RewardFunction:
     A class representing a reward function.
     """
 
-    def __init__(self, env):
+    def __init__(self, env: 'CarlaGymEnv') -> None:
         """
         Create a reward function.
         :param env: the environment for which the reward function is created.
@@ -106,7 +106,7 @@ class RewardFunction:
         self.reward_chain = []
         self.data = RewardData(env)
 
-    def add(self, reward_name, **kwargs):
+    def add(self, reward_name: str, **kwargs: Any) -> Self:
         """
         Add an element to the chain of reward functions.
         :param reward_name: name of the reward sub-function
@@ -117,7 +117,7 @@ class RewardFunction:
         self.reward_chain.append(function)
         return self
 
-    def compute(self):
+    def compute(self) -> float:
         """
         Compute the reward.
         :return: the reward
@@ -129,7 +129,7 @@ class RewardFunction:
         return reward
 
     @staticmethod
-    def every_timestep_penalty(cache, penalty=1.0):
+    def every_timestep_penalty(cache: RewardData, penalty: float = 1.0) -> float:
         """
         Apply a small penalty at each time step.
         :param cache: the cache allowing access to various data entries
@@ -140,7 +140,7 @@ class RewardFunction:
         return -penalty
 
     @staticmethod
-    def goal_improvement(cache, reward=1.0):
+    def goal_improvement(cache: RewardData, reward: float = 1.0) -> float:
         """
         Add a reward when moving closer to the goal (+reward per meter).
         :param cache: the cache allowing access to various data entries
@@ -157,7 +157,7 @@ class RewardFunction:
         return reward * (cache["prev_distance"] - cache["distance_to_goal"])
 
     @staticmethod
-    def goal_reached(cache, reward=50, goal_threshold=0.5):
+    def goal_reached(cache: RewardData, reward: float = 50, goal_threshold: float = 0.5) -> float:
         """
         Add a reward when the agent reaches the goal location.
         :param cache: the cache allowing access to various data entries
@@ -174,13 +174,12 @@ class RewardFunction:
         return reward if cache["goal_reached"] else 0.0
 
     @staticmethod
-    def collision(cache, penalty=50, time_penalty=1.0):
+    def collision(cache: RewardData, penalty: float = 50) -> float:
         """
         Add a penalty for colliding with another object.
         IMPORTANT: Make sure to call this function after every_timestep_penalty.
         :param cache: the cache allowing access to various data entries
         :param penalty: the penalty to apply when colliding with another object
-        :param time_penalty: the time penalty (-time_penalty per step until the goal is reached)
         :return: the reward
         """
 
@@ -200,7 +199,7 @@ class RewardFunction:
         return reward
 
     @staticmethod
-    def illegal_lane_invasions(cache, penalty=25.0):
+    def illegal_lane_invasions(cache: RewardData, penalty: float = 25.0) -> float:
         """
         Add a penalty for each illegal lane invasion.
         :param cache: the cache allowing access to various data entries
@@ -220,7 +219,7 @@ class RewardFunction:
         return reward
 
     @staticmethod
-    def red_light_violation(cache, penalty=1.0):
+    def red_light_violation(cache: RewardData, penalty: float = 1.0) -> float:
         """
         Add a penalty for driving through a red light (-penalty per speed unit over 0 km/h).
         :param cache: the cache allowing access to various data entries
@@ -241,7 +240,7 @@ class RewardFunction:
         return reward
 
     @staticmethod
-    def ego_is_too_fast(cache, penalty=1.0):
+    def ego_is_too_fast(cache: RewardData, penalty: float = 1.0) -> float:
         """
         Add a penalty for driving over the speed limit (-penalty per speed unit over 30 km/h).
         :param cache: the cache allowing access to various data entries
@@ -259,7 +258,7 @@ class RewardFunction:
         return reward
 
     @staticmethod
-    def ego_is_too_slow(cache, penalty=1.0):
+    def ego_is_too_slow(cache: RewardData, penalty: float = 1.0) -> float:
         """
         Add a penalty for driving under the speed limit without reason (-penalty per speed unit under 25 km/h).
         :param cache: the cache allowing access to various data entries
@@ -277,7 +276,7 @@ class RewardFunction:
         return reward
 
     @staticmethod
-    def driving_on_sidewalks(cache, penalty=25.0):
+    def driving_on_sidewalks(cache: RewardData, penalty: float = 25.0) -> float:
         """
         Add a penalty for driving on the sidewalks.
         :param cache: the cache allowing access to various data entries
