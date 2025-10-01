@@ -26,7 +26,7 @@ from src.envs.carla_env_render import MatplotlibAnimationRenderer
 #from models.dipp_predictor_py.dipp_carla import Predictor
 from src.envs.observation.observation_manager import ObservationManager
 from src.envs.actions.action_manager import ActionManager
-from src.envs.reward.base_reward import Reward
+from src.envs.reward.reward_function import RewardFunction
 # pyright: reportAttributeAccessIssue=none
 
 #TODO: config should be passed as an argument to the environment, not hard-coded.
@@ -94,7 +94,16 @@ class CarlaGymEnv(gym.Env):
         self.spawn_points: list[carla.Transform] = []
         self.global_route_start: carla.Location = None
         self.global_route_destination: carla.Location = None
-        self.reward_func = Reward(scene_duration=self.scene_duration, step_frequecny=self.frequency)
+        self.reward_func = RewardFunction(self) \
+            .add("every_timestep_penalty") \
+            .add("goal_improvement") \
+            .add("goal_reached") \
+            .add("collision") \
+            .add("illegal_lane_invasions") \
+            .add("red_light_violation") \
+            .add("ego_is_too_fast") \
+            .add("ego_is_too_slow") \
+            .add("driving_on_sidewalks")
 
         # Pygame setup for camera display (only if rendering enabled)
         if self.render_enabled:
@@ -486,16 +495,8 @@ class CarlaGymEnv(gym.Env):
 
         ######################### Reward and termination ############################
         # Compute distance to goal
-        distance_to_goal = self.compute_distance_to_goal(target_location)
-        reward = self.reward_func(
-            distance_to_goal,
-            self.prev_distance,
-            self.collision_detected,
-            self.timestep,
-            self.lane_invasions,
-            self.ego_vehicle,
-            self.world.get_map()
-        )
+        distance_to_goal = self.compute_distance_to_goal(self.ego_vehicle.get_location())
+        reward = self.reward_func.compute()
         self.lane_invasions = []
         self.prev_distance = distance_to_goal
         info["distance_to_goal"] = distance_to_goal
