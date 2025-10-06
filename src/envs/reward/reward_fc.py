@@ -70,7 +70,7 @@ class EveryTimestepPenalty(RewardFunction):
     A class applying a penalty at each time step.
     """
 
-    def __init__(self, every_timestep_penalty: float = -1) -> None:
+    def __init__(self, every_timestep_penalty: float = -1.0) -> None:
         """
         Initialize the reward function.
 
