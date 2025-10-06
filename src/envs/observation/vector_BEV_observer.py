@@ -905,6 +905,8 @@ class Vector_BEV_observer:
             constant_values=0,
         )
 
+        # print(f"ego buffer: {ego_buffer.shape}")
+        # print(f"neigh buffer: {neighbors_buffer.shape}")
         ground_truth = np.concatenate(
             (ego_buffer[:, None, ...], neighbors_buffer), axis=1
         )

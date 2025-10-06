@@ -7,7 +7,7 @@ EGO_AUTOPILOT: False
 FOLLOW_POINT_DIST: 8  # meters
 REQ_TIME: 1  # seconds
 FREQUENCY: 0.1  # simulation tick time
-RENDER_CAMERA: False
+RENDER_CAMERA: "both"
 USE_CUSTOM_MAP: False
 NUM_ACTIONS: 3
 N_ACTION_PER_MANEUVER: 5

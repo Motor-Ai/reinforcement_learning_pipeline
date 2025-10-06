@@ -61,7 +61,7 @@ class CarlaGymEnv(gym.Env):
     """
     metadata = {"render.modes": ["human"]}
     
-    def __init__(self, render_enabled=False):
+    def __init__(self, render_enabled):
         """
         Initialize the environment.
         
@@ -97,10 +97,12 @@ class CarlaGymEnv(gym.Env):
         self.reward_func = Reward(scene_duration=self.scene_duration, step_frequecny=self.frequency)
 
         # Pygame setup for camera display (only if rendering enabled)
-        if self.render_enabled:
+        if self.render_enabled == "sim" or self.render_enabled == "both":
             pygame.init()  # pylint: disable=no-member
             self.screen = pygame.display.set_mode((display_width, display_height))
             pygame.display.set_caption("Carla Gym Environment")
+        if self.render_enabled == "plt" or self.render_enabled == "both":
+            self.renderer = MatplotlibAnimationRenderer()
         self.display_width = display_width
         self.display_height = display_height
 
@@ -272,7 +274,7 @@ class CarlaGymEnv(gym.Env):
             self.ego_vehicle.set_autopilot(self.ego_autopilot, self.tm.get_port())
 
         # Attach Camera to Ego Vehicle if rendering is enabled
-        if self.render_enabled:
+        if self.render_enabled == "sim" or self.render_enabled == "both":
             camera_bp = self.blueprint_library.find('sensor.camera.rgb')
             camera_bp.set_attribute('image_size_x', str(self.display_width))
             camera_bp.set_attribute('image_size_y', str(self.display_height))
@@ -429,10 +431,10 @@ class CarlaGymEnv(gym.Env):
                         # Compute perpendicular displacement (90-degree rotation)
                         perpendicular = np.array([-np.sin(yaw), np.cos(yaw)])
 
-                        if action[0] == 1: #left?
-                            action_point = action_point + (-5.0 * perpendicular)
-                        elif action[0] == 2: #right?
-                            action_point = action_point + (5.0 * perpendicular)
+                        if action[0] == 1:
+                            action_point = action_point + (-5.0 * perpendicular)                    
+                        elif action[0] == 2:
+                            action_point = action_point + (5.0 * perpendicular) 
                 else:
                     action_point = np.array([0.0, 0.0])
 
