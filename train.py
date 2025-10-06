@@ -1,6 +1,6 @@
 import os
 import yaml
-from src.envs.carla_env import CarlaGymEnv
+from src.envs.carla_env_v2 import CarlaGymEnv
 from src.envs.callbacks import LoggerCallback
 from stable_baselines3 import A2C
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
