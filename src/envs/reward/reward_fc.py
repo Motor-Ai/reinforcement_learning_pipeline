@@ -1,6 +1,5 @@
 import abc
 from typing import Any, List, Optional, Dict
-
 import carla
 
 
@@ -16,7 +15,6 @@ class RewardFunction(abc.ABC):
         @param data: the data required to compute the reward
         @return: the reward
         """
-        ...
 
     @abc.abstractmethod
     def required_keys(self) -> List[str]:
@@ -24,7 +22,6 @@ class RewardFunction(abc.ABC):
         Return a list of keys required by the reward function.
         @return: the list of keys
         """
-        ...
 
 
 class CompositeReward(RewardFunction):
@@ -65,35 +62,39 @@ class CompositeReward(RewardFunction):
         return self.requirements
 
 
-class EveryTimestepPenalty(RewardFunction):
+class TimePenalty(RewardFunction):
     """
     A class applying a penalty at each time step.
     """
 
-    def __init__(self, every_timestep_penalty: float = -1.0) -> None:
+    def __init__(self, time_penalty: float = -1.0) -> None:
         """
         Initialize the reward function.
 
         NOTE: Add key "every_timestep_penalty" to the data.
         @param every_timestep_penalty: the penalty given to the agent at each timestep
         """
-        self.every_timestep_penalty = every_timestep_penalty
+        self.time_penalty = time_penalty
 
     def compute(self, data: Dict[str, Any]) -> float:
         """
-        Apply a penalty at each time step.
+        Apply a penalty at each time step. Add a penalty for all future steps if the episode
+        ends prematurely due to a collision.
         @param data: the data required to compute the reward
         @return: the reward
         """
-        data["every_timestep_penalty"] = self.every_timestep_penalty
-        return self.every_timestep_penalty
+        reward = self.time_penalty
+        if data["collision"]:
+            # Ensure that the car does not learn to crash to avoid small penalty at each time step,
+            reward += self.time_penalty * (data["episode_length"] - data["timestep"] -1)
+        return reward
 
     def required_keys(self) -> List[str]:
         """
         Return a list of keys required by the reward function.
         @return: the list of keys
         """
-        return ["every_timestep_penalty"]
+        return ["collision", "episode_length", "timestep"]
 
 
 class GoalImprovementReward(RewardFunction):
@@ -107,7 +108,6 @@ class GoalImprovementReward(RewardFunction):
         @param data: the data required to compute the reward
         @return: the reward
         """
-
         # Compute reward based on the progress made by the agent.
         if data["prev_distance"] is None:
             return 0.0
@@ -165,7 +165,6 @@ class CollisionPenalty(RewardFunction):
         """
         Initialize the reward function.
 
-        NOTE: Must be called after "EveryTimestepPenalty".
         @param collision_penalty: the penalty given to the agent for each collision
         """
         self.collision_penalty = collision_penalty
@@ -176,14 +175,10 @@ class CollisionPenalty(RewardFunction):
         @param data: the data required to compute the reward
         @return: the reward
         """
-
         # Compute the collision reward.
         reward = 0.0
         if data["collision"]:
             reward += self.collision_penalty
-
-            # Ensure that the car does not learn to crash to avoid small penalty at each time step,
-            reward += data["every_timestep_penalty"] * (data["episode_length"] - data["timestep"])
         return reward
 
     def required_keys(self) -> List[str]:
@@ -191,7 +186,7 @@ class CollisionPenalty(RewardFunction):
         Return a list of keys required by the reward function.
         @return: the list of keys
         """
-        return ["collision", "episode_length", "timestep", "every_timestep_penalty"]
+        return ["collision", "episode_length"]
 
 
 class IllegalLaneInvasions(RewardFunction):
@@ -377,7 +372,7 @@ class ExperimentalRewardFunction(CompositeReward):
         Initialize the reward function.
         """
         sub_rewards = [
-            EveryTimestepPenalty(),
+            TimePenalty(),
             GoalImprovementReward(),
             GoalReachedReward(),
             CollisionPenalty(),
