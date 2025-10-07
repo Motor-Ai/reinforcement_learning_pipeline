@@ -1,56 +1,48 @@
 import abc
-from typing import Optional
+from typing import Optional, Protocol, TypeVar, Generic, get_type_hints
 from dataclasses import dataclass
 import carla
-# disable type errors of Optional types:
-# pyright: reportOperatorIssue=false, reportOptionalOperand=false,  reportOptionalMemberAccess=false, reportOptionalIterable=false
 
 
 @dataclass
 class RewardData:
-    """
-    A dataclass containing all the data required to compute the reward function.
-    """
-    collision: Optional[bool] = None
-    episode_length: Optional[int] = None
-    timestep: Optional[int] = None
-    prev_distance: Optional[float] = None
-    distance_to_goal: Optional[float] = None
-    lane_invasions: Optional[list[carla.LaneInvasionEvent]] = None
-    ego_vehicle: Optional[carla.Vehicle] = None
-    ego_speed: Optional[float] = None
-    blocked_at_red_light: Optional[bool] = None
-    goal_reached: Optional[bool] = None
-    current_waypoint: Optional[carla.Waypoint] = None
+    """Base reward data container."""
 
 
-class RewardFunction(abc.ABC):
+class Supports(Protocol):
+    """A class that specifies the attributes that must be present in a dataclass.
+        Used to sepecify the input key types of a reward function."""
+
+
+# placeholder for the input type
+T = TypeVar('T', bound=RewardData)
+
+class Reward(abc.ABC, Generic[T]):
     """
     A class representing a reward function.
     """
+    input_type: type[T]
 
     @abc.abstractmethod
-    def compute(self, data: RewardData) -> float:
+    def compute(self, data: T) -> float:
         """
         Compute the reward function.
         @param data: the data required to compute the reward
         @return: the reward
         """
 
-    @abc.abstractmethod
+    @property
     def required_keys(self) -> list[str]:
-        """
-        Return a list of keys required by the reward function.
-        @return: the list of keys
-        """
+        """Get input keys required by the reward function."""
+        return list(get_type_hints(self.input_type).keys())
 
 
-class CompositeReward(RewardFunction):
+class CompositeReward(Reward[T]):
     """
     A class allowing the composition of reward functions, by weighting the reward sub-functions.
     """
 
-    def __init__(self, sub_rewards: list[RewardFunction], weights: Optional[list[float]] = None) -> None:
+    def __init__(self, sub_rewards: list[Reward], weights: Optional[list[float]] = None) -> None:
         """
         Create a composite reward function.
         @param sub_rewards: a list of reward functions
@@ -61,10 +53,10 @@ class CompositeReward(RewardFunction):
         assert len(self.weights) == len(self.sub_rewards)
         self.requirements = []
         for sub_reward in sub_rewards:
-            self.requirements += sub_reward.required_keys()
+            self.requirements += sub_reward.required_keys
         self.requirements = list(set(self.requirements))
 
-    def compute(self, data: RewardData) -> float:
+    def compute(self, data: T) -> float:
         """
         Compute the reward function.
         @param data: the data required to compute the reward
@@ -75,29 +67,33 @@ class CompositeReward(RewardFunction):
             rewards += weight * sub_reward.compute(data)
         return rewards
 
-    def required_keys(self) -> list[str]:
-        """
-        Return a list of keys required by the reward function.
-        @return: the list of keys
-        """
-        return self.requirements
+
+##########################################################################
+# Reward elements
+##########################################################################
 
 
-class TimePenalty(RewardFunction):
+class HasTime(Supports):
+    """Data needed for TimePenalty."""
+    collision: bool
+    episode_length: int
+    timestep: int
+
+
+class TimePenalty(Reward):
     """
     A class applying a penalty at each time step.
     """
+    input_type = HasTime
 
     def __init__(self, time_penalty: float = -1.0) -> None:
         """
         Initialize the reward function.
-
-        NOTE: Add key "every_timestep_penalty" to the data.
         @param every_timestep_penalty: the penalty given to the agent at each timestep
         """
         self.time_penalty = time_penalty
 
-    def compute(self, data: RewardData) -> float:
+    def compute(self, data: HasTime) -> float:
         """
         Apply a penalty at each time step. Add a penalty for all future steps if the episode
         ends prematurely due to a collision.
@@ -110,20 +106,20 @@ class TimePenalty(RewardFunction):
             reward += self.time_penalty * (data.episode_length - data.timestep -1)
         return reward
 
-    def required_keys(self) -> list[str]:
-        """
-        Return a list of keys required by the reward function.
-        @return: the list of keys
-        """
-        return ["collision", "episode_length", "timestep"]
+
+class HasGoalDistanceChange(Supports):
+    """Data needed for GoalImprovementReward."""
+    distance_to_goal: float
+    prev_distance: float
 
 
-class GoalImprovementReward(RewardFunction):
+class GoalImprovementReward(Reward):
     """
     A class rewarding the agent for moving closer to the goal.
     """
+    input_type = HasGoalDistanceChange
 
-    def compute(self, data: RewardData) -> float:
+    def compute(self, data: HasGoalDistanceChange) -> float:
         """
         Reward the agent for moving closer to the goal.
         @param data: the data required to compute the reward
@@ -134,18 +130,17 @@ class GoalImprovementReward(RewardFunction):
             return 0.0
         return data.prev_distance - data.distance_to_goal
 
-    def required_keys(self) -> list[str]:
-        """
-        Return a list of keys required by the reward function.
-        @return: the list of keys
-        """
-        return ["prev_distance", "distance_to_goal"]
+
+class HasGoalDistance(Supports):
+    """Data needed for GoalReachedReward."""
+    distance_to_goal: float
 
 
-class GoalReachedReward(RewardFunction):
+class GoalReachedReward(Reward):
     """
     A class rewarding the agent for reaching the goal location.
     """
+    input_type = HasGoalDistance
 
     def __init__(self, goal_reached_reward: float = 50.0, goal_threshold: float = 0.5) -> None:
         """
@@ -156,29 +151,26 @@ class GoalReachedReward(RewardFunction):
         self.goal_reached_reward = goal_reached_reward
         self.goal_threshold = goal_threshold
 
-    def compute(self, data: RewardData) -> float:
+    def compute(self, data: HasGoalDistance) -> float:
         """
         Reward the agent when it reaches the goal location.
         @param data: the data required to compute the reward
         @return: the reward
         """
-
-        # Compute the reward.
-        data.goal_reached = data.distance_to_goal < self.goal_threshold
-        return self.goal_reached_reward if data.goal_reached else 0.0
-
-    def required_keys(self) -> list[str]:
-        """
-        Return a list of keys required by the reward function.
-        @return: the list of keys
-        """
-        return ["distance_to_goal"]
+        goal_reached = data.distance_to_goal < self.goal_threshold
+        return self.goal_reached_reward if goal_reached else 0.0
 
 
-class CollisionPenalty(RewardFunction):
+class HasCollision(Supports):
+    """Data needed for CollisionPenalty."""
+    collision: bool
+
+
+class CollisionPenalty(Reward):
     """
     A class penalising the agent for colliding with other objects.
     """
+    input_type = HasCollision
 
     def __init__(self, collision_penalty: float = -25) -> None:
         """
@@ -188,7 +180,7 @@ class CollisionPenalty(RewardFunction):
         """
         self.collision_penalty = collision_penalty
 
-    def compute(self, data: RewardData) -> float:
+    def compute(self, data: HasCollision) -> float:
         """
         Penalise the agent for colliding with other objects.
         @param data: the data required to compute the reward
@@ -200,18 +192,17 @@ class CollisionPenalty(RewardFunction):
             reward += self.collision_penalty
         return reward
 
-    def required_keys(self) -> list[str]:
-        """
-        Return a list of keys required by the reward function.
-        @return: the list of keys
-        """
-        return ["collision", "episode_length"]
+
+class HasLaneInvasions(Supports):
+    """Data needed for IllegalLaneInvasions."""
+    lane_invasions: list[carla.LaneInvasionEvent]
 
 
-class IllegalLaneInvasions(RewardFunction):
+class IllegalLaneInvasions(Reward):
     """
     A class penalising each illegal lane invasion.
     """
+    input_type = HasLaneInvasions
 
     def __init__(self, lane_invasion_penalty: float = -25) -> None:
         """
@@ -220,14 +211,12 @@ class IllegalLaneInvasions(RewardFunction):
         """
         self.lane_invasion_penalty = lane_invasion_penalty
 
-    def compute(self, data: RewardData) -> float:
+    def compute(self, data: HasLaneInvasions) -> float:
         """
         Penalise the agent for each illegal lane invasion.
         @param data: the data required to compute the reward
         @return: the reward
         """
-
-        # Compute a penalty for illegal lane invasions.
         reward = 0.0
         for lane_invasion in data.lane_invasions:
             for crossed_lane_marking in lane_invasion.crossed_lane_markings:
@@ -235,18 +224,18 @@ class IllegalLaneInvasions(RewardFunction):
                     reward += self.lane_invasion_penalty
         return reward
 
-    def required_keys(self) -> list[str]:
-        """
-        Return a list of keys required by the reward function.
-        @return: the list of keys
-        """
-        return ["lane_invasions"]
+
+class HasVehicleAndSpeed(Supports):
+    """Data needed for RedLightViolation."""
+    ego_vehicle: carla.Vehicle
+    ego_speed: float
 
 
-class RedLightViolation(RewardFunction):
+class RedLightViolation(Reward):
     """
     A class penalising movement of the ego vehicle at a red light.
     """
+    input_type = HasVehicleAndSpeed
 
     def __init__(self, red_light_penalty: float = -1) -> None:
         """
@@ -255,7 +244,7 @@ class RedLightViolation(RewardFunction):
         """
         self.red_light_penalty = red_light_penalty
 
-    def compute(self, data: RewardData) -> float:
+    def compute(self, data: HasVehicleAndSpeed) -> float:
         """
         Add a penalty for driving through a red light (+penalty per speed unit over 0 km/h).
         @param data: the data required to compute the reward
@@ -270,18 +259,17 @@ class RedLightViolation(RewardFunction):
                 reward += self.red_light_penalty * data.ego_speed
         return reward
 
-    def required_keys(self) -> list[str]:
-        """
-        Return a list of keys required by the reward function.
-        @return: the list of keys
-        """
-        return ["ego_vehicle", "ego_speed"]
+
+class HasSpeed(Supports):
+    """Data needed for EgoIsTooFast."""
+    ego_speed: float
 
 
-class EgoIsTooFast(RewardFunction):
+class EgoIsTooFast(Reward):
     """
     A class penalising the agent for driving too fast.
     """
+    input_type = HasSpeed
 
     def __init__(self, too_fast_penalty: float = -1, max_speed: float = 8.333) -> None:
         """
@@ -292,33 +280,34 @@ class EgoIsTooFast(RewardFunction):
         self.too_fast_penalty = too_fast_penalty
         self.max_speed = max_speed
 
-    def compute(self, data: RewardData) -> float:
+    def compute(self, data: HasSpeed) -> float:
         """
         Add a penalty for driving over the speed limit.
         @param data: the data required to compute the reward
         @return: the reward
         """
-
-        # Penalise the agent for driving too fast (By default, over 30 km/h = 8.333 m/s).
         reward = 0.0
         if self.max_speed < data.ego_speed:
             reward += self.too_fast_penalty * (data.ego_speed - self.max_speed)
         return reward
 
-    def required_keys(self) -> list[str]:
-        """
-        Return a list of keys required by the reward function.
-        @return: the list of keys
-        """
-        return ["ego_speed"]
+
+class HasSpeedAndGoal(Supports):
+    """Data needed for TooSlowPenalty."""
+    ego_speed: float
+    blocked_at_red_light: bool
+    distance_to_goal: float
 
 
-class TooSlowPenalty(RewardFunction):
+class TooSlowPenalty(Reward):
     """
     A class penalising the agent for driving too slowly.
     """
+    input_type = HasSpeedAndGoal
 
-    def __init__(self, too_slow_penalty: float = -1, min_speed: float = 6.944) -> None:
+    def __init__(self, too_slow_penalty: float = -1,
+                 min_speed: float = 6.944,
+                 goal_threshold: float = 0.5) -> None:
         """
         Initialize the reward function.
         @param too_slow_penalty: the penalty giving to the agent when it drives too slow
@@ -326,8 +315,9 @@ class TooSlowPenalty(RewardFunction):
         """
         self.too_slow_penalty = too_slow_penalty
         self.min_speed = min_speed
+        self.goal_threshold = goal_threshold
 
-    def compute(self, data: RewardData) -> float:
+    def compute(self, data: HasSpeedAndGoal) -> float:
         """
         Add a penalty for driving under the speed limit without reason.
         @param data: the data required to compute the reward
@@ -336,22 +326,22 @@ class TooSlowPenalty(RewardFunction):
 
         # Penalise the agent for driving too slowly (by default, below 25 km/h = 6.944 m/s).
         reward = 0.0
-        if not data.blocked_at_red_light and not data.goal_reached and data.ego_speed < self.min_speed:
+        goal_reached = data.distance_to_goal < self.goal_threshold
+        if not data.blocked_at_red_light and not goal_reached and (data.ego_speed < self.min_speed):
             reward += self.too_slow_penalty * (self.min_speed - data.ego_speed)
         return reward
 
-    def required_keys(self) -> list[str]:
-        """
-        Return a list of keys required by the reward function.
-        @return: the list of keys
-        """
-        return ["blocked_at_red_light", "goal_reached", "ego_speed"]
+
+class HasWaypoint(Supports):
+    """Data needed for DrivingOnSidewalks."""
+    current_waypoint: carla.Waypoint
 
 
-class DrivingOnSidewalks(RewardFunction):
+class DrivingOnSidewalks(Reward):
     """
     A class penalising the agent for driving on the sidewalks.
     """
+    input_type = HasWaypoint
 
     def __init__(self, on_sidewalks_penalty: float = -25) -> None:
         """
@@ -360,7 +350,7 @@ class DrivingOnSidewalks(RewardFunction):
         """
         self.on_sidewalks_penalty = on_sidewalks_penalty
 
-    def compute(self, data: RewardData) -> float:
+    def compute(self, data: HasWaypoint) -> float:
         """
         Add a penalty for driving on the sidewalks.
         @param data: the data required to compute the reward
@@ -372,33 +362,3 @@ class DrivingOnSidewalks(RewardFunction):
         if data.current_waypoint.lane_type == carla.LaneType.Sidewalk:
             reward += self.on_sidewalks_penalty
         return reward
-
-    def required_keys(self) -> list[str]:
-        """
-        Return a list of keys required by the reward function.
-        @return: the list of keys
-        """
-        return ["current_waypoint"]
-
-
-class ExperimentalRewardFunction(CompositeReward):
-    """
-    A wrapper around the composite class that provides a more complex reward function.
-    """
-
-    def __init__(self) -> None:
-        """
-        Initialize the reward function.
-        """
-        sub_rewards = [
-            TimePenalty(),
-            GoalImprovementReward(),
-            GoalReachedReward(),
-            CollisionPenalty(),
-            IllegalLaneInvasions(),
-            RedLightViolation(),
-            EgoIsTooFast(),
-            TooSlowPenalty(),
-            DrivingOnSidewalks()
-        ]
-        super().__init__(sub_rewards)

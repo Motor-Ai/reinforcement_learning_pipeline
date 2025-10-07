@@ -12,7 +12,7 @@ import sys
 import yaml  # Import YAML parser
 from typing import Optional, Tuple, Any, List
 
-from src.envs.reward.reward_fc import ExperimentalRewardFunction
+from src.envs.reward.default_reward import ExperimentalRewardFunction
 
 # Expand the CARLA_ROOT environment variable correctly:
 carla_root = os.environ.get("CARLA_ROOT")
@@ -30,7 +30,6 @@ from src.envs.carla_env_render import MatplotlibAnimationRenderer
 #from models.dipp_predictor_py.dipp_carla import Predictor
 from src.envs.observation.observation_manager import ObservationManager
 from src.envs.actions.action_manager import ActionManager
-from src.envs.reward.reward_function import RewardFunction
 # pyright: reportAttributeAccessIssue=none
 
 #TODO: config should be passed as an argument to the environment, not hard-coded.
@@ -207,11 +206,6 @@ class CarlaGymEnv(gym.Env):
     #     torch.manual_seed(seed)
     #     return [seed]
 
-    def get_item(self, key: str) -> Any:
-        if key not in self.getters.keys():
-            return None
-        return self.getters[key]()
-
     def get_distance_to_goal(self) -> float:
         return self.compute_distance_to_goal(self.ego_vehicle.get_location())
 
@@ -251,12 +245,13 @@ class CarlaGymEnv(gym.Env):
     def get_every_timestep_penalty() -> float:
         return 0.0
 
-    def collect_data(self):
+    def calculate_reward(self):
         """
-        Collect the data required to compute the reward.
-        @return: the data
+        Send data to the reward function and get the reward.
         """
-        return {key: self.get_item(key) for key in self.reward_func.required_keys()}
+        reward_data = {key: self.getters[key]() for key in self.reward_func.required_keys}
+        inputs = self.reward_func.input_type(**reward_data)
+        return self.reward_func.compute(inputs)
 
     def process_image(self, image, screen):
         """
@@ -556,7 +551,7 @@ class CarlaGymEnv(gym.Env):
         ######################### Reward and termination ############################
         # Compute distance to goal
         distance_to_goal = self.compute_distance_to_goal(self.ego_vehicle.get_location())
-        reward = self.reward_func.compute(self.collect_data())
+        reward = self.calculate_reward()
         self.lane_invasions = []
         self.prev_distance = distance_to_goal
         info["distance_to_goal"] = distance_to_goal
