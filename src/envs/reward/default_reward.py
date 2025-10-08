@@ -23,7 +23,7 @@ class ExperimentalRewardData(RewardData):
     collision: bool
     episode_length: int
     timestep: int
-    prev_distance: float
+    prev_distance_to_goal: float
     distance_to_goal: float
     lane_invasions: list[carla.LaneInvasionEvent]
     ego_vehicle: carla.Vehicle

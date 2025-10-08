@@ -88,15 +88,12 @@ class CarlaGymEnv(gym.Env):
         self.timestep = 0
         self.goal_threshold = 0.5  # meters
         self.map_path = '/home/ratul/Downloads/Tegel_map_for_Decision_1302.xodr'
-        self.prev_distance: Optional[float] = None
-        self.matplotlib_renderer: Optional[MatplotlibAnimationRenderer] = None
+        self.prev_distance_to_goal: float
         self.preprocess_observation = PREPROCESS_OBSERVATION
-        self.obs: Optional[dict] = None
-        self.global_route: np.ndarray = None
-        self.ego_vehicle: carla.Actor = None
+        self.observation: dict  #TODO: change to correct type
+        self.global_route: np.ndarray
+        self.ego_vehicle: carla.Vehicle
         self.spawn_points: list[carla.Transform] = []
-        self.global_route_start: carla.Location = None
-        self.global_route_destination: carla.Location = None
 
         self.getters = {
             "prev_distance": self.get_previous_distance,
@@ -115,6 +112,7 @@ class CarlaGymEnv(gym.Env):
 
         # Pygame setup for camera display (only if rendering enabled)
         if self.render_enabled:
+            self.matplotlib_renderer = MatplotlibAnimationRenderer()
             pygame.init()  # pylint: disable=no-member
             self.screen = pygame.display.set_mode((display_width, display_height))
             pygame.display.set_caption("Carla Gym Environment")
@@ -122,7 +120,7 @@ class CarlaGymEnv(gym.Env):
         self.display_height = display_height
 
         # Connect to CARLA server and get world
-        self.client = carla.Client('localhost', 2000)  #
+        self.client = carla.Client('localhost', 2000)
         self.client.set_timeout(10.0)
         if self.use_custom_map:
             # Load the custom OpenDRIVE (.xodr) map
@@ -210,7 +208,7 @@ class CarlaGymEnv(gym.Env):
         return self.compute_distance_to_goal(self.ego_vehicle.get_location())
 
     def get_previous_distance(self) -> float:
-        return self.prev_distance
+        return self.prev_distance_to_goal
 
     def get_collision_detected(self) -> bool:
         return self.collision_detected
@@ -389,10 +387,14 @@ class CarlaGymEnv(gym.Env):
                     life_time=self.scene_duration
                 )
         
-        observation = self.observation_manager.get_obs(self.world)
+        self.observation = self.observation_manager.get_obs(self.world)
+
+        # Calculate initial distance to goal
+        distance_to_goal = self.compute_distance_to_goal(self.ego_vehicle.get_location())
+        self.prev_distance_to_goal = distance_to_goal
 
         info = {}
-        return observation, info
+        return self.observation, info
 
     def _generate_global_route(self):
         """
@@ -400,8 +402,6 @@ class CarlaGymEnv(gym.Env):
         Returns:
             A numpy array of shape (N, 3) with columns [x, y, relative_yaw] in the ego coordinate frame.
         """
-        # assert ego_vehicle is Actor with an assertion
-        assert isinstance(self.ego_vehicle, carla.Actor), "Ego vehicle is not an Actor instance."
         # Get the ego vehicle's current location.
         start_location = self.ego_vehicle.get_transform().location
 
@@ -422,8 +422,8 @@ class CarlaGymEnv(gym.Env):
         ]
         self.global_route = np.array(global_route_list)
         # Optionally store the original start and destination too.
-        self.global_route_start = start_location
-        self.global_route_destination = destination
+        #self.global_route_start = start_location
+        #self.global_route_destination = destination
 
     def _transform_to_ego_frame(self):
         # Now, convert the global route into the ego frame.
@@ -457,14 +457,14 @@ class CarlaGymEnv(gym.Env):
             global_route_ego_frame = np.pad(global_route_ego_frame, ((0, pad_len), (0, 0)))
         return global_route_ego_frame, global_route_ego_frame_no_padding
 
-    def step(self, action: NDArray[np.float64]|spaces.Box) -> Tuple[dict, float, bool, bool, dict]:
+    # TODO: fix the dict types of observation and info
+    def step(self, action: NDArray[np.float64]) -> Tuple[dict, float, bool, bool, dict]:
         info = {}
         # print("Action received:", action)
         # transform global route to ego frame
         global_route_ego_frame, global_route_ego_frame_no_padding = self._transform_to_ego_frame()
 
         # Get current ego transform information
-        assert isinstance(self.ego_vehicle, carla.Vehicle), "Ego vehicle is not a Vehicle."
         ego_transform = self.ego_vehicle.get_transform()
         current_location = ego_transform.location
         ego_position_global = np.array([current_location.x, current_location.y])
@@ -543,17 +543,14 @@ class CarlaGymEnv(gym.Env):
         self.sim_time = self.timestep * self.frequency
         info["sim_time"] = self.sim_time
 
-        observation = self.observation_manager.get_obs(self.world, global_route_ego_frame)
-
-        self.obs = observation  # Save the latest observation for rendering
-
+        self.observation = self.observation_manager.get_obs(self.world, global_route_ego_frame)
 
         ######################### Reward and termination ############################
         # Compute distance to goal
         distance_to_goal = self.compute_distance_to_goal(self.ego_vehicle.get_location())
         reward = self.calculate_reward()
         self.lane_invasions = []
-        self.prev_distance = distance_to_goal
+        self.prev_distance_to_goal = distance_to_goal
         info["distance_to_goal"] = distance_to_goal
 
         # Check if goal is reached
@@ -567,7 +564,7 @@ class CarlaGymEnv(gym.Env):
             terminated = True  # End episode on collision
         info["crash"] = self.collision_detected
 
-        return observation, reward, terminated, truncated, info
+        return self.observation, reward, terminated, truncated, info
 
     def _compute_route_error(self, target_global):
         """
@@ -654,17 +651,14 @@ class CarlaGymEnv(gym.Env):
 
         return distance_to_goal
 
+    #TODO: this method is not needed, just call self.matplotlib_renderer.update_data(observation)
     def render(self, mode: str = "human"):
-        # Create the renderer if it doesn't already exist.
-        if self.matplotlib_renderer is None:
-            self.matplotlib_renderer = MatplotlibAnimationRenderer()
-
-        # Use the stored observation data (if available) to update the renderer.
-        if self.obs is not None:
-            ego_obs = self.obs["ego"]
-            neighbors_obs = self.obs["neighbors"]
-            map_obs = self.obs["map"]
-            self.matplotlib_renderer.update_data(ego_obs, neighbors_obs, map_obs)
+        """Render the environment. Must call reset/step before using."""
+        # Use the observation to update the renderer.
+        ego_obs = self.observation["ego"]
+        neighbors_obs = self.observation["neighbors"]
+        map_obs = self.observation["map"]
+        self.matplotlib_renderer.update_data(ego_obs, neighbors_obs, map_obs)
 
     def custom_sample_action(self):
         """

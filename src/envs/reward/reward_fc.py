@@ -9,11 +9,6 @@ class RewardData:
     """Base reward data container."""
 
 
-class Supports(Protocol):
-    """A class that specifies the attributes that must be present in a dataclass.
-        Used to sepecify the input key types of a reward function."""
-
-
 # placeholder for the input type
 T = TypeVar('T', bound=RewardData)
 
@@ -73,7 +68,7 @@ class CompositeReward(Reward[T]):
 ##########################################################################
 
 
-class HasTime(Supports):
+class HasTime(Protocol):
     """Data needed for TimePenalty."""
     collision: bool
     episode_length: int
@@ -107,10 +102,10 @@ class TimePenalty(Reward):
         return reward
 
 
-class HasGoalDistanceChange(Supports):
+class HasGoalDistanceChange(Protocol):
     """Data needed for GoalImprovementReward."""
     distance_to_goal: float
-    prev_distance: float
+    prev_distance_to_goal: float
 
 
 class GoalImprovementReward(Reward):
@@ -125,13 +120,10 @@ class GoalImprovementReward(Reward):
         @param data: the data required to compute the reward
         @return: the reward
         """
-        # Compute reward based on the progress made by the agent.
-        if data.prev_distance is None:
-            return 0.0
-        return data.prev_distance - data.distance_to_goal
+        return data.prev_distance_to_goal - data.distance_to_goal
 
 
-class HasGoalDistance(Supports):
+class HasGoalDistance(Protocol):
     """Data needed for GoalReachedReward."""
     distance_to_goal: float
 
@@ -161,7 +153,7 @@ class GoalReachedReward(Reward):
         return self.goal_reached_reward if goal_reached else 0.0
 
 
-class HasCollision(Supports):
+class HasCollision(Protocol):
     """Data needed for CollisionPenalty."""
     collision: bool
 
@@ -193,7 +185,7 @@ class CollisionPenalty(Reward):
         return reward
 
 
-class HasLaneInvasions(Supports):
+class HasLaneInvasions(Protocol):
     """Data needed for IllegalLaneInvasions."""
     lane_invasions: list[carla.LaneInvasionEvent]
 
@@ -225,7 +217,7 @@ class IllegalLaneInvasions(Reward):
         return reward
 
 
-class HasVehicleAndSpeed(Supports):
+class HasVehicleAndSpeed(Protocol):
     """Data needed for RedLightViolation."""
     ego_vehicle: carla.Vehicle
     ego_speed: float
@@ -260,7 +252,7 @@ class RedLightViolation(Reward):
         return reward
 
 
-class HasSpeed(Supports):
+class HasSpeed(Protocol):
     """Data needed for EgoIsTooFast."""
     ego_speed: float
 
@@ -292,7 +284,7 @@ class EgoIsTooFast(Reward):
         return reward
 
 
-class HasSpeedAndGoal(Supports):
+class HasSpeedAndGoal(Protocol):
     """Data needed for TooSlowPenalty."""
     ego_speed: float
     blocked_at_red_light: bool
@@ -332,7 +324,7 @@ class TooSlowPenalty(Reward):
         return reward
 
 
-class HasWaypoint(Supports):
+class HasWaypoint(Protocol):
     """Data needed for DrivingOnSidewalks."""
     current_waypoint: carla.Waypoint
 
