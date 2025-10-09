@@ -20,7 +20,7 @@ class ExperimentalRewardData(RewardData):
     """
     A dataclass containing all the data required to compute the reward function.
     """
-    collision: bool
+    collision_detected: bool
     episode_length: int
     timestep: int
     prev_distance_to_goal: float

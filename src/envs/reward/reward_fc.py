@@ -70,7 +70,7 @@ class CompositeReward(Reward[T]):
 
 class HasTime(Protocol):
     """Data needed for TimePenalty."""
-    collision: bool
+    collision_detected: bool
     episode_length: int
     timestep: int
 
@@ -96,7 +96,7 @@ class TimePenalty(Reward):
         @return: the reward
         """
         reward = self.time_penalty
-        if data.collision:
+        if data.collision_detected:
             # Ensure that the car does not learn to crash to avoid small penalty at each time step,
             reward += self.time_penalty * (data.episode_length - data.timestep -1)
         return reward
@@ -155,7 +155,7 @@ class GoalReachedReward(Reward):
 
 class HasCollision(Protocol):
     """Data needed for CollisionPenalty."""
-    collision: bool
+    collision_detected: bool
 
 
 class CollisionPenalty(Reward):
@@ -180,7 +180,7 @@ class CollisionPenalty(Reward):
         """
         # Compute the collision reward.
         reward = 0.0
-        if data.collision:
+        if data.collision_detected:
             reward += self.collision_penalty
         return reward
 
