@@ -1,18 +1,18 @@
 import math
-
-import carla # pylint: disable=no-member
+import os
+import sys
+from typing import Tuple, Any
 import random
+import carla # pylint: disable=no-member
 import pygame
 import numpy as np
 from numpy.typing import NDArray
 import gymnasium as gym
 from gymnasium import spaces
-import os
-import sys
-import yaml  # Import YAML parser
-from typing import Optional, Tuple, Any, List
+import yaml
 
 from src.envs.reward.default_reward import ExperimentalRewardFunction
+from src.envs.utils import ego_to_global
 
 # Expand the CARLA_ROOT environment variable correctly:
 carla_root = os.environ.get("CARLA_ROOT")
@@ -88,26 +88,17 @@ class CarlaGymEnv(gym.Env):
         self.timestep = 0
         self.goal_threshold = 0.5  # meters
         self.map_path = '/home/ratul/Downloads/Tegel_map_for_Decision_1302.xodr'
+        self.distance_to_goal = float
         self.prev_distance_to_goal: float
+        self.collision_detected = False
+        self.episode_length = int(self.scene_duration / self.frequency)
+        self.lane_invasions: list[carla.LaneInvasionEvent] = []
         self.preprocess_observation = PREPROCESS_OBSERVATION
         self.observation: dict  #TODO: change to correct type
         self.global_route: np.ndarray
         self.ego_vehicle: carla.Vehicle
         self.spawn_points: list[carla.Transform] = []
 
-        self.getters = {
-            "prev_distance": self.get_previous_distance,
-            "distance_to_goal": self.get_distance_to_goal,
-            "collision": self.get_collision_detected,
-            "episode_length": self.get_episode_length,
-            "timestep": self.get_timestep,
-            "lane_invasions": self.get_lane_invasions,
-            "ego_speed": self.get_ego_speed,
-            "current_waypoint": self.get_current_waypoint,
-            "ego_vehicle": self.get_ego_vehicle,
-            "blocked_at_red_light": self.get_blocked_at_red_light,
-            "every_timestep_penalty": self.get_every_timestep_penalty
-        }
         self.reward_func = ExperimentalRewardFunction()
 
         # Pygame setup for camera display (only if rendering enabled)
@@ -183,12 +174,6 @@ class CarlaGymEnv(gym.Env):
         )
         self.observation_space = self.observation_manager.observation_space
 
-        # Initialize collision flag.
-        self.collision_detected = False
-
-        # A list of lane invasion events.
-        self.lane_invasions = []
-
         # Call reset to start the simulation.
         self.reset()
 
@@ -204,50 +189,28 @@ class CarlaGymEnv(gym.Env):
     #     torch.manual_seed(seed)
     #     return [seed]
 
-    def get_distance_to_goal(self) -> float:
-        return self.compute_distance_to_goal(self.ego_vehicle.get_location())
-
-    def get_previous_distance(self) -> float:
-        return self.prev_distance_to_goal
-
-    def get_collision_detected(self) -> bool:
-        return self.collision_detected
-
-    def get_episode_length(self) -> int:
-        return int(self.scene_duration / self.frequency)
-
-    def get_timestep(self) -> int:
-        return self.timestep
-
-    def get_lane_invasions(self) -> List[carla.LaneInvasionEvent]:
-        return self.lane_invasions
-
-    def get_ego_speed(self) -> float:
+    @property
+    def ego_speed(self) -> float:
         ego_velocity = self.ego_vehicle.get_velocity()
         return math.sqrt(ego_velocity.x ** 2 + ego_velocity.y ** 2)
 
-    def get_current_waypoint(self) -> carla.Waypoint:
+    @property
+    def current_waypoint(self) -> carla.Waypoint:
         return self.world.get_map().get_waypoint(self.ego_vehicle.get_location())
 
-    def get_ego_vehicle(self) -> carla.Vehicle:
-        return self.ego_vehicle
-
-    def get_blocked_at_red_light(self) -> bool:
+    @property
+    def blocked_at_red_light(self) -> bool:
         if self.ego_vehicle.is_at_traffic_light():
             traffic_light = self.ego_vehicle.get_traffic_light()
             if traffic_light.state == carla.TrafficLightState.Red:
                 return True
         return False
 
-    @staticmethod
-    def get_every_timestep_penalty() -> float:
-        return 0.0
-
     def calculate_reward(self):
         """
         Send data to the reward function and get the reward.
         """
-        reward_data = {key: self.getters[key]() for key in self.reward_func.required_keys}
+        reward_data = {key: getattr(self, key) for key in self.reward_func.required_keys}
         inputs = self.reward_func.input_type(**reward_data)
         return self.reward_func.compute(inputs)
 
@@ -261,17 +224,6 @@ class CarlaGymEnv(gym.Env):
         surface = pygame.surfarray.make_surface(array.swapaxes(0, 1))
         screen.blit(surface, (0, 0))
         pygame.display.flip()
-
-    def ego_to_global(self, action: NDArray[np.float64], ego_position: NDArray[np.float64], ego_yaw: float):
-        """
-        Convert a 2D action (offset in ego frame) into a global coordinate.
-        """
-        cos_theta = np.cos(ego_yaw)
-        sin_theta = np.sin(ego_yaw)
-        R = np.array([[cos_theta, -sin_theta],
-                      [sin_theta, cos_theta]])
-        global_point = (R @ action.reshape(2, 1)).reshape(2,) + ego_position
-        return global_point
 
     def _on_collision(self, event: carla.CollisionEvent):
         """
@@ -390,8 +342,8 @@ class CarlaGymEnv(gym.Env):
         self.observation = self.observation_manager.get_obs(self.world)
 
         # Calculate initial distance to goal
-        distance_to_goal = self.compute_distance_to_goal(self.ego_vehicle.get_location())
-        self.prev_distance_to_goal = distance_to_goal
+        self.compute_distance_to_goal(self.ego_vehicle.get_location())
+        self.prev_distance_to_goal = self.distance_to_goal
 
         info = {}
         return self.observation, info
@@ -511,7 +463,7 @@ class CarlaGymEnv(gym.Env):
                 else:
                     action_point = np.array([0.0, 0.0])
 
-            target_global = self.ego_to_global(np.array(action_point), ego_position_global, ego_yaw_global)
+            target_global = ego_to_global(np.array(action_point), ego_position_global, ego_yaw_global)
             target_location = carla.Location(x=target_global[0], y=target_global[1], z=current_location.z)
 
             # Draw the target point in CARLA for debugging
@@ -547,21 +499,21 @@ class CarlaGymEnv(gym.Env):
 
         ######################### Reward and termination ############################
         # Compute distance to goal
-        distance_to_goal = self.compute_distance_to_goal(self.ego_vehicle.get_location())
+        self.compute_distance_to_goal(self.ego_vehicle.get_location())
         reward = self.calculate_reward()
         self.lane_invasions = []
-        self.prev_distance_to_goal = distance_to_goal
-        info["distance_to_goal"] = distance_to_goal
+        self.prev_distance_to_goal = self.distance_to_goal
+        info["distance_to_goal"] = self.distance_to_goal
 
         # Check if goal is reached
-        goal_reached = distance_to_goal < self.goal_threshold
+        goal_reached = self.distance_to_goal < self.goal_threshold
         info["goal_reached"] = goal_reached
         terminated = goal_reached # End episode if goal is reached
         truncated = self.timestep >= self.scene_duration / self.frequency # End episode if time is up
 
-        # Check for collision penalty
+        # End episode on collision
         if self.collision_detected:
-            terminated = True  # End episode on collision
+            terminated = True
         info["crash"] = self.collision_detected
 
         return self.observation, reward, terminated, truncated, info
@@ -617,7 +569,7 @@ class CarlaGymEnv(gym.Env):
         desired_lane_point = route_xy[idx]
         return desired_lane_yaw, desired_lane_point
 
-    def compute_distance_to_goal(self, start_location: carla.Location) -> float:
+    def compute_distance_to_goal(self, start_location: carla.Location):
         """
         Compute the distance between the start_location and the goal location.
         Works by summing the distance between the start_location and the closest
@@ -631,25 +583,22 @@ class CarlaGymEnv(gym.Env):
 
         Args:
             start_location: The start location as (x, y).
-
-        Returns:
-            distance_to_goal (float): The accumulated distance along the global route.
         """
         # Compute distance to goal
-        start_location = np.array([start_location.x, start_location.y])
+        start = np.array([start_location.x, start_location.y])
 
         # Extract (x, y) positions of the route
         route_xy = self.global_route[:, :2]
 
         # Find the closest point on the global route
-        distances = np.linalg.norm(route_xy - start_location, axis=1)  # Distance to all route points
+        distances = np.linalg.norm(route_xy - start, axis=1)  # Distance to all route points
         closest_idx = np.argmin(distances)  # Index of the closest point
 
         # Compute cumulative distance from the closest point to the goal
         remaining_distances = np.linalg.norm(np.diff(route_xy[closest_idx:], axis=0), axis=1)
-        distance_to_goal = np.sum(remaining_distances)  # Sum up all distances
 
-        return distance_to_goal
+        # np.linalg.norm returns Any (??) and messes up typing. maybe should update np version?
+        self.distance_to_goal: float = np.sum(remaining_distances)  # Sum up all distances
 
     #TODO: this method is not needed, just call self.matplotlib_renderer.update_data(observation)
     def render(self, mode: str = "human"):
