@@ -4,7 +4,7 @@ from numpy.typing import NDArray
 
 def ego_to_global(action: NDArray[np.float64], ego_position: NDArray[np.float64], ego_yaw: float):
     """
-    Convert a 2D action (offset in ego frame) into a global coordinate.
+    Convert an (x,y) point in ego frame into a global coordinate.
     """
     cos_theta = np.cos(ego_yaw)
     sin_theta = np.sin(ego_yaw)

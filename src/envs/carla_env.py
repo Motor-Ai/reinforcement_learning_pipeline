@@ -88,7 +88,7 @@ class CarlaGymEnv(gym.Env):
         self.timestep = 0
         self.goal_threshold = 0.5  # meters
         self.map_path = '/home/ratul/Downloads/Tegel_map_for_Decision_1302.xodr'
-        self.distance_to_goal = float
+        self.distance_to_goal: float = 0.0
         self.prev_distance_to_goal: float
         self.collision_detected = False
         self.episode_length = int(self.scene_duration / self.frequency)
@@ -342,7 +342,7 @@ class CarlaGymEnv(gym.Env):
         self.observation = self.observation_manager.get_obs(self.world)
 
         # Calculate initial distance to goal
-        self.compute_distance_to_goal(self.ego_vehicle.get_location())
+        self.distance_to_goal = self.compute_distance_to_goal(self.ego_vehicle.get_location())
         self.prev_distance_to_goal = self.distance_to_goal
 
         info = {}
@@ -373,6 +373,7 @@ class CarlaGymEnv(gym.Env):
             for wp, _ in route
         ]
         self.global_route = np.array(global_route_list)
+        #TODO: this block is obsolete, remove it if it's not used by end of Q4 2025
         # Optionally store the original start and destination too.
         #self.global_route_start = start_location
         #self.global_route_destination = destination
@@ -499,7 +500,7 @@ class CarlaGymEnv(gym.Env):
 
         ######################### Reward and termination ############################
         # Compute distance to goal
-        self.compute_distance_to_goal(self.ego_vehicle.get_location())
+        self.distance_to_goal = self.compute_distance_to_goal(self.ego_vehicle.get_location())
         reward = self.calculate_reward()
         self.lane_invasions = []
         self.prev_distance_to_goal = self.distance_to_goal
@@ -569,7 +570,7 @@ class CarlaGymEnv(gym.Env):
         desired_lane_point = route_xy[idx]
         return desired_lane_yaw, desired_lane_point
 
-    def compute_distance_to_goal(self, start_location: carla.Location):
+    def compute_distance_to_goal(self, start_location: carla.Location) -> float:
         """
         Compute the distance between the start_location and the goal location.
         Works by summing the distance between the start_location and the closest
@@ -597,8 +598,7 @@ class CarlaGymEnv(gym.Env):
         # Compute cumulative distance from the closest point to the goal
         remaining_distances = np.linalg.norm(np.diff(route_xy[closest_idx:], axis=0), axis=1)
 
-        # np.linalg.norm returns Any (??) and messes up typing. maybe should update np version?
-        self.distance_to_goal: float = np.sum(remaining_distances)  # Sum up all distances
+        return np.sum(remaining_distances)  # Sum up all distances
 
     #TODO: this method is not needed, just call self.matplotlib_renderer.update_data(observation)
     def render(self, mode: str = "human"):

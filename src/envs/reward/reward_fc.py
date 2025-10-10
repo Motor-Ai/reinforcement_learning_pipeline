@@ -98,7 +98,7 @@ class TimePenalty(Reward):
         reward = self.time_penalty
         if data.collision_detected:
             # Ensure that the car does not learn to crash to avoid small penalty at each time step,
-            reward += self.time_penalty * (data.episode_length - data.timestep -1)
+            reward += self.time_penalty * (data.episode_length - data.timestep - 1)
         return reward
 
 
@@ -167,7 +167,6 @@ class CollisionPenalty(Reward):
     def __init__(self, collision_penalty: float = -25) -> None:
         """
         Initialize the reward function.
-
         @param collision_penalty: the penalty given to the agent for each collision
         """
         self.collision_penalty = collision_penalty
@@ -297,7 +296,8 @@ class TooSlowPenalty(Reward):
     """
     input_type = HasSpeedAndGoal
 
-    def __init__(self, too_slow_penalty: float = -1,
+    def __init__(self,
+                 too_slow_penalty: float = -1,
                  min_speed: float = 6.944,
                  goal_threshold: float = 0.5) -> None:
         """
