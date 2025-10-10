@@ -86,6 +86,7 @@ class CarlaGymEnv(gym.Env):
         self.show_route = SHOW_ROUTE
         self.sim_time = 0.0
         self.timestep = 0
+        self.cumulative_step = 0
         self.goal_threshold = 0.5  # meters
         self.map_path = '/home/ratul/Downloads/Tegel_map_for_Decision_1302.xodr'
         self.distance_to_goal = float
@@ -492,6 +493,7 @@ class CarlaGymEnv(gym.Env):
         # Advance the simulation by one tick
         self.world.tick()
         self.timestep += 1
+        self.cumulative_step += 1
         self.sim_time = self.timestep * self.frequency
         info["sim_time"] = self.sim_time
 
