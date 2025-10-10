@@ -12,6 +12,7 @@ from gymnasium import spaces
 import yaml
 
 from src.envs.reward.default_reward import ExperimentalRewardFunction
+from src.envs.reward.reward_manager import RewardManager
 from src.envs.utils import ego_to_global
 
 # Expand the CARLA_ROOT environment variable correctly:
@@ -100,7 +101,38 @@ class CarlaGymEnv(gym.Env):
         self.ego_vehicle: carla.Vehicle
         self.spawn_points: list[carla.Transform] = []
 
-        self.reward_func = ExperimentalRewardFunction()
+        self.reward_manager = RewardManager(
+            # TODO(FU): This is ugly asf and should be put into a config, I know.
+            reward_terms={
+                "TimePenalty": {
+                    "weight": -1.0
+                },
+                "GoalImprovementReward": {
+                    "weight": 1.0
+                },
+                "GoalReachedReward": {
+                    "weight": 50.0
+                },
+                "CollisionPenalty": {
+                    "weight": -25.0 
+                },
+                "IllegalLaneInvasions": {
+                    "weight": -25.0
+                },
+                "RedLightViolation": {
+                    "weight": -1.0
+                },
+                "EgoIsTooFast": {
+                    "weight": -1.0 
+                },
+                "TooSlowPenalty": {
+                    "weight": -1.0
+                },
+                "DrivingOnSidewalks": {
+                    "weight": -25.0
+                },
+            }
+        )
 
         # Pygame setup for camera display (only if rendering enabled)
         if self.render_enabled:
@@ -206,14 +238,6 @@ class CarlaGymEnv(gym.Env):
             if traffic_light.state == carla.TrafficLightState.Red:
                 return True
         return False
-
-    def calculate_reward(self):
-        """
-        Send data to the reward function and get the reward.
-        """
-        reward_data = {key: getattr(self, key) for key in self.reward_func.required_keys}
-        inputs = self.reward_func.input_type(**reward_data)
-        return self.reward_func.compute(inputs)
 
     def process_image(self, image, screen):
         """
@@ -502,7 +526,7 @@ class CarlaGymEnv(gym.Env):
         ######################### Reward and termination ############################
         # Compute distance to goal
         self.compute_distance_to_goal(self.ego_vehicle.get_location())
-        reward = self.calculate_reward()
+        reward = self.reward_manager.compute()
         self.lane_invasions = []
         self.prev_distance_to_goal = self.distance_to_goal
         info["distance_to_goal"] = self.distance_to_goal
