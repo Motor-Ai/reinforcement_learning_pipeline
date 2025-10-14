@@ -44,12 +44,12 @@ class GoalReachedReward(RewardTerm):
     A class rewarding the agent for reaching the goal location.
     """
 
-    def __init__(self, goal_threshold: float = 0.5) -> None:
+    def __init__(self, goal_threshold: float = 0.5, *args, **kwargs) -> None:
         """
         Initialize the reward.
         @param goal_threshold: the threshold for reaching the goal location (in meters)
         """
-        super().__init__()
+        super().__init__(*args, **kwargs)
         self.goal_threshold = goal_threshold
 
     def measure(self) -> float:
@@ -77,7 +77,7 @@ class IllegalLaneInvasions(RewardTerm):
     A class penalising each illegal lane invasion.
     """
 
-    def compute(self) -> float:
+    def measure(self) -> float:
         """
         Penalise the agent for each illegal lane invasion.
         """
@@ -85,7 +85,7 @@ class IllegalLaneInvasions(RewardTerm):
         for lane_invasion in self._env.lane_invasions:
             for crossed_lane_marking in lane_invasion.crossed_lane_markings:
                 if crossed_lane_marking.lane_change == carla.LaneChange.NONE:
-                    reward += self.lane_invasion_penalty
+                    reward += 1.0
         return reward
 
 
@@ -103,7 +103,7 @@ class RedLightViolation(RewardTerm):
         if self._env.ego_vehicle.is_at_traffic_light():
             traffic_light = self._env.ego_vehicle.get_traffic_light()
             if traffic_light.state == carla.TrafficLightState.Red:
-                reward += self.red_light_penalty * self._env.ego_speed
+                reward += self._env.ego_speed
         return reward
 
 
@@ -148,7 +148,7 @@ class TooSlowPenalty(RewardTerm):
         # rather than stored
         self.goal_threshold = goal_threshold 
 
-    def compute(self) -> float:
+    def measure(self) -> float:
         """
         Add a penalty for driving under the speed limit without reason.
         """

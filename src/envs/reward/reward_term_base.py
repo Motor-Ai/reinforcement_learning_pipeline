@@ -18,12 +18,13 @@ class RewardTerm(abc.ABC):
         self._env: gym.Env = env
         self._weight: float = weight
         self._cached_measurement: Optional[float] = None
+        self._cached_at_step: int = -1
 
     def _cache_measurement(self, measurement: float):
         """
         Cache the measurement and update the validity.
         """
-        self._cached = measurement
+        self._cached_measurement = measurement
         self._cached_at_step = self._env.cumulative_step
 
     def _check_cached_is_valid(self):
@@ -40,7 +41,7 @@ class RewardTerm(abc.ABC):
         """
 
         if not self._check_cached_is_valid():
-            measurement = self.measure(self)
+            measurement = self.measure()
             self._cache_measurement(measurement)
 
         # TODO(FU): Should be multiplied by shaper also, 

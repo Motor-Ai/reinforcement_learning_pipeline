@@ -11,7 +11,6 @@ import gymnasium as gym
 from gymnasium import spaces
 import yaml
 
-from src.envs.reward.default_reward import ExperimentalRewardFunction
 from src.envs.reward.reward_manager import RewardManager
 from src.envs.utils import ego_to_global
 
@@ -102,6 +101,7 @@ class CarlaGymEnv(gym.Env):
         self.spawn_points: list[carla.Transform] = []
 
         self.reward_manager = RewardManager(
+            env=self,
             # TODO(FU): This is ugly asf and should be put into a config, I know.
             reward_terms={
                 "TimePenalty": {

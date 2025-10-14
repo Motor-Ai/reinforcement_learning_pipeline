@@ -1,29 +1,33 @@
+from future import __annotations__
+
 from typing import Dict, List, TYPE_CHECKING
-import src.envs.reward.reward_fc as RewardTermsLib
+import src.envs.reward.reward_terms as RewardTermsLib
 from collections import defaultdict
 
 if TYPE_CHECKING:
-    from src.envs.reward.reward_fc import RewardTerm
+    from src.envs.reward.reward_term_base import RewardTerm
+    import gym
 
 
 class RewardManager:
     """
     A class allowing the composition of reward functions, by weighting the reward sub-functions.
     """
-
-    def __init__(self, reward_terms: Dict[str, Dict]) -> None:
+    #TODO(FU): why doesnt gym import work ?
+    def __init__(self, env, reward_terms: Dict[str, Dict]) -> None:
         """
         Create a composite reward function.
         @param reward_terms: a dictionary mapping term names to their arguments as dicts
         """
         # Functional
+        self._env = env
         self.reward_term_cfgs = reward_terms
         self.reward_terms: dict[str, RewardTerm] = self._init_terms()
         
         # Logging 
-        self.stepwise_logs: defaultdict[str, float] = defaultdict(0.0)
-        self.cumulative_logs: defaultdict[str, float] = defaultdict(0.0)
-        self.episodic_logs: defaultdict[str, List[float]] = defaultdict([])
+        self.stepwise_logs: defaultdict[str, float] = defaultdict(lambda: 0.0)
+        self.cumulative_logs: defaultdict[str, float] = defaultdict(lambda: 0.0)
+        self.episodic_logs: defaultdict[str, List[float]] = defaultdict(lambda: [])
 
     def reset(self):
         """
@@ -53,7 +57,7 @@ class RewardManager:
         
         return full_reward
 
-    def _init_terms(self) -> dict[str, RewardTerm]:
+    def _init_terms(self):# -> dict[str, RewardTerm]:
         """
         Initialize the reward terms.
         @return: A mapping between the name and the object.
@@ -61,6 +65,6 @@ class RewardManager:
         reward_terms = {}
         for term_class_name, term_cfg in self.reward_term_cfgs.items():
             term_cls = getattr(RewardTermsLib, term_class_name)
-            reward_terms[term_class_name] = term_cls(**term_cfg)
+            reward_terms[term_class_name] = term_cls(env=self._env, **term_cfg)
         
         return reward_terms
