@@ -6,7 +6,8 @@ from collections import defaultdict
 
 if TYPE_CHECKING:
     from src.envs.reward.reward_term_base import RewardTerm
-    import gym
+    import gymnasium as gym
+
 
 
 class RewardManager:
