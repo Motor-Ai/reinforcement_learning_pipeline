@@ -25,6 +25,7 @@ class TimePenalty(RewardTerm):
             return self._env.episode_length - self._env.timestep
         return 1
 
+
 class GoalImprovementReward(RewardTerm):
     """
     A class rewarding the agent for moving closer to the goal.
@@ -71,6 +72,7 @@ class CollisionPenalty(RewardTerm):
         Penalise the agent for colliding with other objects.
         """
         return float(self._env.collision_detected)
+
 
 class IllegalLaneInvasions(RewardTerm):
     """

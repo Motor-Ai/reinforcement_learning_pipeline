@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     import gym
 
+
 class RewardTerm(abc.ABC):
     """
     A class representing a reward function.
@@ -65,6 +66,3 @@ class RewardTerm(abc.ABC):
     @property
     def raw_reward(self):
         return self._cache_measurement # just for renaming purposes
-
-
-

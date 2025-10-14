@@ -30,7 +30,7 @@ class RewardManager:
 
     def reset(self):
         """
-        Reset the manager and its terms.
+        Reset the manager and its terms. Triggered at every environment reset.
         """
         for term_name, term in self.reward_terms.items():
             term.reset()
