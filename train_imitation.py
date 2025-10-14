@@ -13,7 +13,6 @@ from imitation.algorithms import bc
 from imitation.data import rollout
 from imitation.policies.serialize import load_policy
 
-from src.envs.carla_env import CarlaGymEnv
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 

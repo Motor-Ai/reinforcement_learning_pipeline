@@ -4,8 +4,6 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-from src.envs.carla_env import CarlaGymEnv
-from src.envs.carla_env_render import MatplotlibAnimationRenderer
 from stable_baselines3 import A2C
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
