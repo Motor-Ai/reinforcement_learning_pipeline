@@ -1,47 +1,25 @@
 import numpy as np
-import torch
 from gymnasium import spaces
-from typing import Optional
-
-from src.envs.observation.decision_traffic_rules.feature_indices import agent_feat_id
-from src.envs.observation.decision_traffic_rules.traffic_sign_db import traffic_feat_idx
-from src.envs.observation.vector_BEV_observer import Vector_BEV_observer
 
 from src.envs.actions.act_integration import rss_utils_poly_calc
 import src.envs.actions.act_integration.spline as sp
 
 from numpy.typing import NDArray
+
+
 class ActionManager:
     """Defines the action space and handles action creation and preprocessing."""
+
     def __init__(self, action_fields: list[str], n_samples: int) -> None :
         """
         action_fields: list of actions to include.
         """
         self.action_fields = action_fields
         self.n_samples = n_samples
-        self.action_space = spaces.Box(low=np.repeat(np.array([-1, -1, -1]), repeats=n_samples, axis=0), 
-                                        high=np.repeat(np.array([-1, -1, -1]), repeats=n_samples, axis=0), 
-                                        dtype=np.float32)
-
-    # def _build_space(self) -> spaces.Dict:
-    #     actions = {}
-    #     # --------------------------------------------------------
-    #     # Hard-code your observation space to match the shapes you expect.
-    #     # Example shapes (leading dimension 1 for ego, 5 for neighbors, etc.).
-    #     # Adjust these as needed to match your real data.
-    #     # --------------------------------------------------------
-    #     for action_name in self.action_fields:
-    #         if action_name == "acc":
-    #             actions["acc"] = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
-    #         elif action_name == "lat_shift":
-    #             actions["lat_shift"] = spaces.Box(low=-1, high=1, shape=(1,), dtype=np.float32)
-    #         elif action_name == "manuver":
-    #             actions["manuver"] = spaces.Discrete(3, start=-1)  # -1: keep lane, 0: left, 1: right
-    #         else:
-    #             raise ValueError(f"Unknown observation key: {action_name}")
-    #     return spaces.Box(low=np.array([0, -1, -1]), 
-    #                         high=np.array([2,  1,  1]), 
-    #                         dtype=np.float32)
+        self.action_space = spaces.Box(
+            low=np.repeat(np.array([-1, -1, -1]), repeats=n_samples, axis=0),
+            high=np.repeat(np.array([-1, -1, -1]), repeats=n_samples, axis=0),
+            dtype=np.float32)
 
     def action_space_to_fp_params(self,action_space: NDArray[np.float64], ego_vel_lon, plan_time_range, plan_dt):
         """

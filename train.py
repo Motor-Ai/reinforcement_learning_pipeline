@@ -1,7 +1,7 @@
 import hydra
+from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-from src.envs.carla_env import CarlaGymEnv
 from src.envs.callbacks import LoggerCallback
 from stable_baselines3 import A2C
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
@@ -13,8 +13,8 @@ from stable_baselines3.common.monitor import Monitor
 def train(config: DictConfig) -> None:
 
     # Create vectorized environment
-    env = DummyVecEnv([lambda: CarlaGymEnv(config.env, render_enabled=config.env.render_camera),])
-    eval_env = DummyVecEnv([lambda: Monitor(CarlaGymEnv(config.env, render_enabled=False))])
+    env = DummyVecEnv([lambda: instantiate(config.env)])
+    eval_env = DummyVecEnv([lambda: Monitor(instantiate(config.env))])
 
     # Apply VecNormalize (normalizes both observations and rewards)
     env = VecNormalize(env, norm_obs=True, norm_reward=True)

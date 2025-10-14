@@ -4,6 +4,7 @@ Refer to the jupyter notebooks for more detailed examples of how to use the algo
 """
 import hydra
 import numpy as np
+from hydra.utils import instantiate
 from omegaconf import DictConfig
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
@@ -63,7 +64,7 @@ def train_imitation(config: DictConfig):
 
     rng = np.random.default_rng(0)
 
-    env = DummyVecEnv([lambda: CarlaGymEnv(config.env, render_enabled=config.env.render_camera)])
+    env = DummyVecEnv([lambda: instantiate(config.env)])
 
     # make_vec_env(
     #     "seals:seals/CartPole-v0",
@@ -90,7 +91,7 @@ def train_imitation(config: DictConfig):
     #     env_make_kwargs={"render_mode": "human"},  # for rendering
     # )
 
-    evaluation_env = DummyVecEnv([lambda: CarlaGymEnv(config.env, render_enabled=config.env.render_camera)])
+    evaluation_env = DummyVecEnv([lambda: instantiate(config.env)])
 
     print("Evaluating the untrained policy.")
     reward, _ = evaluate_policy(

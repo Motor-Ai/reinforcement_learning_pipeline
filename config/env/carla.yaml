@@ -1,8 +1,11 @@
+# The class to instantiate.
+_target_: src.envs.carla_env.CarlaGymEnv
+
+# The environment's parameters
 render_camera: False
 scene_duration: 30  # seconds
 slowdown_percentage: 10
 ego_autopilot: False
-req_time: 1  # seconds
 frequency: 0.1  # simulation tick time
 use_custom_map: False
 show_route: True

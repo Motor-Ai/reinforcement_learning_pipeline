@@ -1,6 +1,7 @@
 import os
 
 import hydra
+from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from src.envs.carla_env import CarlaGymEnv
@@ -16,7 +17,7 @@ def eval(config: DictConfig):
     # TODO: right now every new model is saved into the same dir, erasing the previous run. Should
     #  make a new dir for every run and make eval load the latest dir by default.
 
-    eval_env = DummyVecEnv([lambda: CarlaGymEnv(config.env, render_enabled=config.env.render_camera)])
+    eval_env = DummyVecEnv([lambda: instantiate(config.env)])
     eval_env = VecNormalize.load(vec_norm_path, eval_env)
     eval_env.training = False
     eval_env.norm_reward = False
@@ -30,7 +31,6 @@ def eval(config: DictConfig):
         done = False
         step_count = 0
 
-        renderer = MatplotlibAnimationRenderer()
         step = 0
         while not done:
             action, _ = model.predict(obs, deterministic=True)
