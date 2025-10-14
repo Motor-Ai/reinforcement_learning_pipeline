@@ -199,7 +199,6 @@ class ActionManager:
 
         # === Generate a B-spline path with 0.1m resolution ===
         x_arr, y_arr, yaw_arr, _ = sp.calc_bspline_course_2(ref_x, ref_y, path_len, 0.1)
-        print(f"Processed path to {len(x_arr)} points.")
 
         ego_vel_lon, ego_vel_lat = ego_state[-2], ego_state[-1]
 

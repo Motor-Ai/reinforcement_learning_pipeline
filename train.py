@@ -37,7 +37,7 @@ def train(config: DictConfig) -> None:
         verbose=1,
     )
 
-    # Train A2C model
+    # Train A2C agent
     model = A2C("MultiInputPolicy", env, verbose=1, tensorboard_log="./tensorboard/")
 
     try:
