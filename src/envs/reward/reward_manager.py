@@ -1,4 +1,4 @@
-from future import __annotations__
+from __future__ import annotations
 
 from typing import Dict, List, TYPE_CHECKING
 import src.envs.reward.reward_terms as RewardTermsLib
@@ -13,8 +13,7 @@ class RewardManager:
     """
     A class allowing the composition of reward functions, by weighting the reward sub-functions.
     """
-    #TODO(FU): why doesnt gym import work ?
-    def __init__(self, env, reward_terms: Dict[str, Dict]) -> None:
+    def __init__(self, env: gym.Env, reward_terms: Dict[str, Dict]) -> None:
         """
         Create a composite reward function.
         @param reward_terms: a dictionary mapping term names to their arguments as dicts
@@ -57,7 +56,7 @@ class RewardManager:
         
         return full_reward
 
-    def _init_terms(self):# -> dict[str, RewardTerm]:
+    def _init_terms(self) -> dict[str, RewardTerm]:
         """
         Initialize the reward terms.
         @return: A mapping between the name and the object.
