@@ -175,5 +175,5 @@ class DrivingOnSidewalks(RewardTerm):
         # Penalise the agent for driving on the sidewalks.
         reward = 0.0
         if self._env.current_waypoint.lane_type == carla.LaneType.Sidewalk:
-            reward += self.on_sidewalks_penalty
+            reward += 1.0
         return reward
