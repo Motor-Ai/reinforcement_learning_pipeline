@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import carla
 
 if TYPE_CHECKING:
-    import gym
+    import gymnasium as gym
 
 
 class TimePenalty(RewardTerm):
