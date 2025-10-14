@@ -7,8 +7,9 @@ import gymnasium as gym
 from gymnasium import spaces
 import os
 import sys
-import yaml  # Import YAML parser
 from typing import Optional, Tuple, Any
+
+from omegaconf import DictConfig
 
 # Expand the CARLA_ROOT environment variable correctly:
 carla_root = os.environ.get("CARLA_ROOT")
@@ -23,35 +24,11 @@ from agents.navigation.global_route_planner import GlobalRoutePlanner
 # MAI imports
 from src.envs.observation.vector_BEV_observer import Vector_BEV_observer
 from src.envs.carla_env_render import MatplotlibAnimationRenderer
-#from models.dipp_predictor_py.dipp_carla import Predictor
 from src.envs.observation.observation_manager import ObservationManager
 from src.envs.actions.action_manager import ActionManager
 from src.envs.reward.base_reward import Reward
 # pyright: reportAttributeAccessIssue=none
 
-#TODO: config should be passed as an argument to the environment, not hard-coded.
-# Load configurations from YAML
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "configs/config.yaml")
-with open(CONFIG_PATH, "r", encoding="utf-8") as config_file:
-    config = yaml.safe_load(config_file)
-
-# Assign configurations to variables
-N_VEHICLES = config["N_VEHICLES"]
-SCENE_DURATION = config["SCENE_DURATION"]
-SLOWDOWN_PERCENTAGE = config["SLOWDOWN_PERCENTAGE"]
-EGO_AUTOPILOT = config["EGO_AUTOPILOT"]
-FOLLOW_POINT_DIST = config["FOLLOW_POINT_DIST"]
-REQ_TIME = config["REQ_TIME"]
-FREQUENCY = config["FREQUENCY"]
-USE_CUSTOM_MAP = config["USE_CUSTOM_MAP"]
-NUM_ACTIONS = config["NUM_ACTIONS"]
-N_ACTION_PER_MANEUVER = config["N_ACTION_PER_MANEUVER"]
-SHOW_ROUTE = config["SHOW_ROUTE"]
-PREPROCESS_OBSERVATION = config["PREPROCESS_OBSERVATION"]
-display_width = config["display_width"]
-display_height = config["display_height"]
-
-MAI_ACTION_SPACE = True
 
 class CarlaGymEnv(gym.Env):
     """
@@ -61,11 +38,12 @@ class CarlaGymEnv(gym.Env):
     """
     metadata = {"render.modes": ["human"]}
     
-    def __init__(self, render_enabled=False):
+    def __init__(self, config: DictConfig, render_enabled=False):
         """
         Initialize the environment.
         
         Parameters:
+            config (DictConfig): Configuration settings for the environment.
             render_enabled (bool): If True, the camera sensor is spawned and
                                    its output rendered via Pygame.
         """
@@ -73,21 +51,22 @@ class CarlaGymEnv(gym.Env):
         self.render_enabled = render_enabled
 
         # Simulation parameters
-        self.scene_duration = SCENE_DURATION
-        self.slowdown_percentage = SLOWDOWN_PERCENTAGE
-        self.ego_autopilot = EGO_AUTOPILOT
-        #self.follow_point_dist = FOLLOW_POINT_DIST
-        self.req_time = REQ_TIME
-        self.frequency = FREQUENCY
-        self.use_custom_map = USE_CUSTOM_MAP
-        self.show_route = SHOW_ROUTE
+        self.mai_action_space = config.mai_action_space
+        self.n_vehicles = config.n_vehicles
+        self.scene_duration = config.scene_duration
+        self.slowdown_percentage = config.slowdown_percentage
+        self.ego_autopilot = config.ego_autopilot
+        self.req_time = config.req_time
+        self.frequency = config.frequency
+        self.use_custom_map = config.use_custom_map
+        self.show_route = config.show_route
         self.sim_time = 0.0
         self.timestep = 0
         self.goal_threshold = 0.5  # meters
         self.map_path = '/home/ratul/Downloads/Tegel_map_for_Decision_1302.xodr'
         self.prev_distance: Optional[float] = None
         self.matplotlib_renderer: Optional[MatplotlibAnimationRenderer] = None
-        self.preprocess_observation = PREPROCESS_OBSERVATION
+        self.preprocess_observation = config.preprocess_observation
         self.obs: Optional[dict] = None
         self.global_route: np.ndarray = None
         self.ego_vehicle: carla.Actor = None
@@ -99,10 +78,10 @@ class CarlaGymEnv(gym.Env):
         # Pygame setup for camera display (only if rendering enabled)
         if self.render_enabled:
             pygame.init()  # pylint: disable=no-member
-            self.screen = pygame.display.set_mode((display_width, display_height))
+            self.screen = pygame.display.set_mode((config.display_width, config.display_height))
             pygame.display.set_caption("Carla Gym Environment")
-        self.display_width = display_width
-        self.display_height = display_height
+        self.display_width = config.display_width
+        self.display_height = config.display_height
 
         # Connect to CARLA server and get world
         self.client = carla.Client('localhost', 2000)  #
@@ -149,14 +128,14 @@ class CarlaGymEnv(gym.Env):
         # Define the action space early on:
         # self.action_space = spaces.Box(low=5, high=10, shape=(2,), dtype=np.float32)
 
-        if not MAI_ACTION_SPACE:
-            self.num_maneuvers = NUM_ACTIONS  # Possible actions: 0, 1, 2, 3, 4
+        if not self.mai_action_space:
+            self.num_maneuvers = config.num_actions  # Possible actions: 0, 1, 2, 3, 4
             self.n_action_per_maneuver = N_ACTION_PER_MANEUVER
             self.action_space = spaces.MultiDiscrete([self.num_maneuvers, self.n_action_per_maneuver])
         else:
             self.action_manager = ActionManager( # Not used, Just a stub 
-                action_fields=["acc", "lat_shift", "manuver"] ,
-                n_samples = NUM_ACTIONS)
+                action_fields=["acc", "lat_shift", "manuver"],
+                n_samples = config.num_actions)
             self.action_space = self.action_manager.action_space 
 
         # Define the possible values for each dimension
@@ -300,7 +279,7 @@ class CarlaGymEnv(gym.Env):
 
         # Spawn other vehicles on autopilot
         self.vehicles = []
-        for _ in range(N_VEHICLES):
+        for _ in range(self.n_vehicles):
             vehicle_bp = random.choice(self.blueprint_library.filter('vehicle.*'))
             spawn_point = random.choice(self.spawn_points)
             vehicle = self.world.try_spawn_actor(vehicle_bp, spawn_point)
@@ -408,7 +387,7 @@ class CarlaGymEnv(gym.Env):
         ego_velocity = self.ego_vehicle.get_velocity()
         ego_state = [current_location.x, current_location.y, ego_yaw_global, ego_velocity.x, ego_velocity.y]
         if not self.ego_autopilot:
-            if not MAI_ACTION_SPACE:
+            if not self.mai_action_space:
                 action_point = action.copy()
                 if len(global_route_ego_frame_no_padding):
                     if action[0] in {0, 1, 2} and 1 <= action[1] <= 4:

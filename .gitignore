@@ -10,3 +10,5 @@ saved_rl_models/*
 
 .idea/
 data/
+
+outputs/

@@ -1,29 +1,27 @@
 import os
-import yaml
+
+import hydra
+from omegaconf import DictConfig
+
 from src.envs.carla_env import CarlaGymEnv
 from src.envs.carla_env_render import MatplotlibAnimationRenderer
 from stable_baselines3 import A2C
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
-# Load configurations from YAML
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "src/envs/configs/config.yaml")
-with open(CONFIG_PATH, "r") as config_file:
-    config = yaml.safe_load(config_file)
 
-RENDER_CAMERA = config["RENDER_CAMERA"]
-SAVE_PATH = config["SAVE_PATH"]
+@hydra.main(version_base="1.3.2", config_path="config", config_name="eval")
+def eval(config: DictConfig):
 
-VECNORM_PATH = os.path.join(SAVE_PATH, "1.1.3.1/vec_normalize.pkl")
-#TODO: right now every new model is saved into the same dir, erasing the previous run. Should
-# make a new dir for every run and make eval load the latest dir by default.
+    vec_norm_path = os.path.join(config.save_path, "1.1.3.1/vec_normalize.pkl")
+    # TODO: right now every new model is saved into the same dir, erasing the previous run. Should
+    #  make a new dir for every run and make eval load the latest dir by default.
 
-if __name__ == '__main__':
-    eval_env = DummyVecEnv([lambda: CarlaGymEnv(render_enabled=RENDER_CAMERA)])
-    eval_env = VecNormalize.load(VECNORM_PATH, eval_env)
+    eval_env = DummyVecEnv([lambda: CarlaGymEnv(config.env, render_enabled=config.env.render_camera)])
+    eval_env = VecNormalize.load(vec_norm_path, eval_env)
     eval_env.training = False
     eval_env.norm_reward = False
 
-    best_model_path = os.path.join(SAVE_PATH, "1.1.3.1/best_model.zip")
+    best_model_path = os.path.join(config.save_path, "1.1.3.1/best_model.zip")
     print(f"Loading best model: {best_model_path}")
     model = A2C.load(best_model_path, env=eval_env)
 
@@ -46,3 +44,7 @@ if __name__ == '__main__':
 
     eval_env.close()
     print("Environment closed.")
+
+
+if __name__ == '__main__':
+    eval()

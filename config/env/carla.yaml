@@ -1,0 +1,15 @@
+render_camera: False
+scene_duration: 30  # seconds
+slowdown_percentage: 10
+ego_autopilot: False
+req_time: 1  # seconds
+frequency: 0.1  # simulation tick time
+use_custom_map: False
+show_route: True
+preprocess_observation: True
+display_width: 1080
+display_height: 720
+num_actions: 3
+n_vehicles: 1
+mai_action_space: True
+n_actions_per_maneuver: 5

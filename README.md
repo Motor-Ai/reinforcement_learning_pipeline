@@ -10,12 +10,17 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
 ├── main.py
 ├── requirements.txt
 ├── train.py
+├── config/
+│   ├── eval.yaml
+│   ├── train.yaml
+│   ├── train_imitation.yaml
+│   ├── main.yaml
+│   └── env/
+│       └── carla.yaml
 ├── envs/
 │   ├── callbacks.py
 │   ├── carla_env.py
 │   ├── carla_env_render.py
-│   ├── configs/
-│   │   └── config.yaml
 │   ├── observation/
 │   │   ├── __init__.py
 │   │   ├── tr_costs.py

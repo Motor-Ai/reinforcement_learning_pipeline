@@ -1,0 +1,16 @@
+defaults:
+  - env: carla
+  - _self_
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+
+save_path: "./saved_rl_models/"
+train: True
+test: False
+load_model: False
+load_model_path: "./saved_rl_models/1.1/model_55000.zip"
+
+hydra:
+  output_subdir: null
+  run:
+    dir: .

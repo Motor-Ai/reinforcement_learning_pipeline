@@ -2,12 +2,11 @@
 
 Refer to the jupyter notebooks for more detailed examples of how to use the algorithms.
 """
+import hydra
 import numpy as np
-import os
-import yaml
-from stable_baselines3 import PPO, A2C
+from omegaconf import DictConfig
+from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
-from stable_baselines3.ppo import MlpPolicy
 
 from imitation.algorithms import bc
 from imitation.data import rollout
@@ -16,31 +15,10 @@ from imitation.policies.serialize import load_policy
 from imitation.util.util import make_vec_env
 
 from src.envs.carla_env import CarlaGymEnv
-from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
-# Load configurations from YAML
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "src/envs/configs/config.yaml")
-with open(CONFIG_PATH, "r") as config_file:
-    config = yaml.safe_load(config_file)
+from stable_baselines3.common.vec_env import DummyVecEnv
 
-RENDER_CAMERA = config["RENDER_CAMERA"]
-SAVE_PATH = config["SAVE_PATH"]
 
-rng = np.random.default_rng(0)
-
-env = DummyVecEnv([lambda: CarlaGymEnv(render_enabled=RENDER_CAMERA)])
-
-# make_vec_env(
-#     "seals:seals/CartPole-v0",
-#     rng=rng,
-#     post_wrappers=[lambda env, _: RolloutInfoWrapper(env)],  # for computing rollouts
-# )
-
-# print(env.observation_space.contains())
-# print(env.action_space.contains())
-print(env.action_space)
-print(env.observation_space)
-
-def train_expert():
+def train_expert(env):
     # note: use `download_expert` instead to download a pretrained, competent expert
     print("Training a expert.")
     expert = PPO(
@@ -57,20 +35,20 @@ def train_expert():
     return expert
 
 
-# def download_expert():
-#     print("Downloading a pretrained expert.")
-#     expert = load_policy(
-#         "ppo-huggingface",
-#         organization="HumanCompatibleAI",
-#         env_name="seals-CartPole-v0",
-#         venv=env,
-#     )
-#     return expert
+def download_expert(env):
+    print("Downloading a pretrained expert.")
+    expert = load_policy(
+        "ppo-huggingface",
+        organization="HumanCompatibleAI",
+        env_name="seals-CartPole-v0",
+        venv=env,
+    )
+    return expert
 
 
-def sample_expert_transitions():
-    expert = train_expert()  # uncomment to train your own expert
-    # expert = download_expert()
+def sample_expert_transitions(env, rng, pretrained = False):
+
+    expert = download_expert(env) if pretrained else train_expert(env)
 
     print("Sampling expert transitions.")
     rollouts = rollout.rollout(
@@ -82,39 +60,60 @@ def sample_expert_transitions():
     return rollout.flatten_trajectories(rollouts)
 
 
-transitions = sample_expert_transitions()
-bc_trainer = bc.BC(
-    observation_space=env.observation_space,
-    action_space=env.action_space,
-    demonstrations=transitions,
-    rng=rng,
-)
+@hydra.main(version_base="1.3.2", config_path="config", config_name="train_imitation")
+def train_imitation(config: DictConfig):
 
-# evaluation_env = make_vec_env(
-#     "seals:seals/CartPole-v0",
-#     rng=rng,
-#     env_make_kwargs={"render_mode": "human"},  # for rendering
-# )
+    rng = np.random.default_rng(0)
 
-evaluation_env = DummyVecEnv([lambda: CarlaGymEnv(render_enabled=RENDER_CAMERA)])
+    env = DummyVecEnv([lambda: CarlaGymEnv(config.env, render_enabled=config.env.render_camera)])
 
-print("Evaluating the untrained policy.")
-reward, _ = evaluate_policy(
-    bc_trainer.policy,  # type: ignore[arg-type]
-    evaluation_env,
-    n_eval_episodes=3,
-    render=True,  # comment out to speed up
-)
-print(f"Reward before training: {reward}")
+    # make_vec_env(
+    #     "seals:seals/CartPole-v0",
+    #     rng=rng,
+    #     post_wrappers=[lambda env, _: RolloutInfoWrapper(env)],  # for computing rollouts
+    # )
 
-print("Training a policy using Behavior Cloning")
-bc_trainer.train(n_epochs=1)
+    # print(env.observation_space.contains())
+    # print(env.action_space.contains())
+    print(env.action_space)
+    print(env.observation_space)
 
-print("Evaluating the trained policy.")
-reward, _ = evaluate_policy(
-    bc_trainer.policy,  # type: ignore[arg-type]
-    evaluation_env,
-    n_eval_episodes=3,
-    render=True,  # comment out to speed up
-)
-print(f"Reward after training: {reward}")
+    transitions = sample_expert_transitions(env, rng)
+    bc_trainer = bc.BC(
+        observation_space=env.observation_space,
+        action_space=env.action_space,
+        demonstrations=transitions,
+        rng=rng,
+    )
+
+    # evaluation_env = make_vec_env(
+    #     "seals:seals/CartPole-v0",
+    #     rng=rng,
+    #     env_make_kwargs={"render_mode": "human"},  # for rendering
+    # )
+
+    evaluation_env = DummyVecEnv([lambda: CarlaGymEnv(config.env, render_enabled=config.env.render_camera)])
+
+    print("Evaluating the untrained policy.")
+    reward, _ = evaluate_policy(
+        bc_trainer.policy,  # type: ignore[arg-type]
+        evaluation_env,
+        n_eval_episodes=3,
+        render=True,  # comment out to speed up
+    )
+    print(f"Reward before training: {reward}")
+
+    print("Training a policy using Behavior Cloning")
+    bc_trainer.train(n_epochs=1)
+
+    print("Evaluating the trained policy.")
+    reward, _ = evaluate_policy(
+        bc_trainer.policy,  # type: ignore[arg-type]
+        evaluation_env,
+        n_eval_episodes=3,
+        render=True,  # comment out to speed up
+    )
+    print(f"Reward after training: {reward}")
+
+if __name__ == '__main__':
+    train_imitation()
