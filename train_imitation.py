@@ -10,9 +10,7 @@ from stable_baselines3.common.evaluation import evaluate_policy
 
 from imitation.algorithms import bc
 from imitation.data import rollout
-from imitation.data.wrappers import RolloutInfoWrapper
 from imitation.policies.serialize import load_policy
-from imitation.util.util import make_vec_env
 
 from src.envs.carla_env import CarlaGymEnv
 from stable_baselines3.common.vec_env import DummyVecEnv
@@ -114,6 +112,7 @@ def train_imitation(config: DictConfig):
         render=True,  # comment out to speed up
     )
     print(f"Reward after training: {reward}")
+
 
 if __name__ == '__main__':
     train_imitation()
