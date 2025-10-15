@@ -22,7 +22,7 @@ from src.envs.observation.vector_BEV_observer import Vector_BEV_observer
 from src.envs.carla_env_render import MatplotlibAnimationRenderer
 #from models.dipp_predictor_py.dipp_carla import Predictor
 from src.envs.observation.observation_manager import ObservationManager
-from src.envs.actions.action_manager import ActionManager
+from src.envs.actions.action_manager import ActionManager, EgoState
 # pyright: reportAttributeAccessIssue=none
 
 #TODO: config should be passed as an argument to the environment, not hard-coded.
@@ -186,10 +186,9 @@ class CarlaGymEnv(gym.Env):
             self.n_action_per_maneuver = N_ACTION_PER_MANEUVER
             self.action_space = spaces.MultiDiscrete([self.num_maneuvers, self.n_action_per_maneuver])
         else:
-            self.action_manager = ActionManager( # Not used, Just a stub 
-                action_fields=["acc", "lat_shift", "manuver"] ,
+            self.action_manager = ActionManager(
                 n_samples = NUM_ACTIONS)
-            self.action_space = self.action_manager.action_space 
+            self.action_space = self.action_manager.action_space
 
         # Define the possible values for each dimension
         self.index_map = {1: 1, 2: 5, 3: 10, 4: 15}
@@ -440,8 +439,6 @@ class CarlaGymEnv(gym.Env):
         current_location = ego_transform.location
         ego_position_global = np.array([current_location.x, current_location.y])
         ego_yaw_global = np.deg2rad(ego_transform.rotation.yaw)
-        ego_velocity = self.ego_vehicle.get_velocity()
-        ego_state = [current_location.x, current_location.y, ego_yaw_global, ego_velocity.x, ego_velocity.y]
         if not self.ego_autopilot:
             if not MAI_ACTION_SPACE:
                 action_point = action.copy()
@@ -472,11 +469,17 @@ class CarlaGymEnv(gym.Env):
                     action_point = np.array([0.0, 0.0])
 
             else: 
+                ego_velocity = self.ego_vehicle.get_velocity()
+                ego_state = EgoState(
+                    location=current_location,
+                    yaw=ego_yaw_global,
+                    velocity=ego_velocity)
+                
                 if len(global_route_ego_frame_no_padding) > 1:
                     # Action from Policy converted to Frenet to determine the target point
                     # ref_path = np.unique(global_route_ego_frame_no_padding[:,:2], axis = -1)
                     path_x, path_y, path_yaw, path_vel, path_time = self.action_manager.get_path(action, global_route_ego_frame_no_padding[:,:2], 
-                                                                                                ego_state, plan_time_range=3.0, plan_dt=0.2)
+                                                                                            ego_state)
                     TARGET_PT_IDX = 2 # NOTE: PARAM to set which point to use from the planned path
                     action_point = np.array([path_x[TARGET_PT_IDX], path_y[TARGET_PT_IDX]]) # Take the second point in the planned path
                 else:
