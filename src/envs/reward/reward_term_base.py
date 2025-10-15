@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import abc
 from typing import TYPE_CHECKING, Optional, Protocol, runtime_checkable
+import carla
 
 if TYPE_CHECKING:
     import gymnasium as gym
+
 
 @runtime_checkable
 class GeneralEnv(Protocol):
@@ -13,7 +15,15 @@ class GeneralEnv(Protocol):
     collision_detected: bool
     episode_length: int
     timestep: int
-    ...
+    prev_distance_to_goal: float
+    distance_to_goal: float
+    lane_invasions: list[carla.LaneInvasionEvent]
+    ego_vehicle: carla.Vehicle
+    ego_speed: float
+    blocked_at_red_light: bool
+    current_waypoint: carla.Waypoint
+
+
 class RewardTerm(abc.ABC):
     """
     A class representing a reward function.
@@ -26,7 +36,7 @@ class RewardTerm(abc.ABC):
 
         # TODO(FU): Remove this check once we implement an env general class.
         assert isinstance(env, GeneralEnv), "The environment doesn't implement required functionality."
-        self._env: gym.Env = env
+        self._env = env
 
         assert weight > 0.0, "Weight must be positive" # internally agreed on this.
         self._weight: float = weight
