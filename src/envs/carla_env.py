@@ -1,6 +1,5 @@
 import math
 import os
-import sys
 from typing import Tuple, Any
 import random
 import carla # pylint: disable=no-member
@@ -13,12 +12,6 @@ import yaml
 
 from src.envs.reward.reward_manager import RewardManager
 from src.envs.utils import ego_to_global
-
-# Expand the CARLA_ROOT environment variable correctly:
-carla_root = os.environ.get("CARLA_ROOT")
-if carla_root is None:
-    raise EnvironmentError("CARLA_ROOT environment variable is not set.")
-sys.path.append(os.path.join(carla_root, "PythonAPI", "carla"))
 
 # Import the default VehiclePIDController from CARLA
 from agents.navigation.controller import VehiclePIDController

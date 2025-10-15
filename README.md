@@ -48,24 +48,30 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
 
 ### Installation
 
-1. Install dependencies:
+1. Download and install [CARLA 0.9.15](https://github.com/carla-simulator/carla/releases/tag/0.9.15/). Set up the CARLA_ROOT variable to point to your CARLA directory, and add it to the PYTHONPATH:
     ```bash
-    pip install -r requirements.txt
+    echo 'export CARLA_ROOT="/path/to/my/CARLA_0.9.15"' >> ~/.bashrc
+    echo 'export PYTHONPATH="${CARLA_ROOT}/PythonAPI/carla/dist/carla-0.9.14-py3.7-linux-x86_64.egg"' >> ~/.bashrc
+    source ~/.bashrc
     ```
-3. Configure environment variables and settings as needed in `envs/configs/config.yaml`.
-
-### Install using poetry
-
-1. Install poetry globally:
+2. Using poetry: install poetry globally, then create venv and install dependencies inside the project folder:
     ```bash
     sudo apt install python3-poetry
-    ```
-2. Create venv and install dependencies inside the project folder:
-    ```bash
     cd <project folder>
     poetry config --local virtualenvs.in-project true
     poetry install
     ```
+    Alternatively: create your virtual env manually and install dependencies using pip:
+    ```bash
+    pip install -r requirements.txt
+    ```
+3. Set up the CARLA 'agents' lib by running:
+
+    ```bash
+    cp -r $CARLA_ROOT/PythonAPI/carla/agents/ .venv/lib/python3.10/site-packages/
+    ```
+
+    replace `.venv` with the name of your virtual env dir.
 
 
 ### Running the RL Pipeline
@@ -75,7 +81,7 @@ To run the project, follow these steps:
 1. **Start the CARLA Simulator**  
     Open a terminal and run:
     ```bash
-    $CARLA_ROOT/CarlaUE4.sh -RenderOffScreen -quality-level=Low
+    $CARLA_ROOT/CarlaUE4.sh -RenderOffScreen -quality-level=Low -prefernvidia
     ```
     - `-RenderOffScreen`: Runs CARLA without rendering to a display (useful for headless servers).
     - `-quality-level=Low`: Sets the graphics quality to low for better performance.
