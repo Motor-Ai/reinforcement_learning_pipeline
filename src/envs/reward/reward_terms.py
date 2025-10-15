@@ -22,8 +22,8 @@ class TimePenalty(RewardTerm):
         """
         # Ensure that the car does not learn to crash to avoid small penalty at each time step,
         if self._env.collision_detected:
-            return self._env.episode_length - self._env.timestep
-        return 1
+            return -(self._env.episode_length - self._env.timestep)
+        return -1.0
 
 
 class GoalImprovementReward(RewardTerm):
@@ -71,7 +71,7 @@ class CollisionPenalty(RewardTerm):
         """
         Penalise the agent for colliding with other objects.
         """
-        return float(self._env.collision_detected)
+        return -float(self._env.collision_detected)
 
 
 class IllegalLaneInvasions(RewardTerm):
@@ -88,7 +88,7 @@ class IllegalLaneInvasions(RewardTerm):
             for crossed_lane_marking in lane_invasion.crossed_lane_markings:
                 if crossed_lane_marking.lane_change == carla.LaneChange.NONE:
                     reward += 1.0
-        return reward
+        return -reward
 
 
 class RedLightViolation(RewardTerm):
@@ -106,7 +106,7 @@ class RedLightViolation(RewardTerm):
             traffic_light = self._env.ego_vehicle.get_traffic_light()
             if traffic_light.state == carla.TrafficLightState.Red:
                 reward += self._env.ego_speed
-        return reward
+        return -reward
 
 
 class EgoIsTooFast(RewardTerm):
@@ -126,7 +126,7 @@ class EgoIsTooFast(RewardTerm):
         """
         Add a penalty for driving over the speed limit.
         """
-        return max(self._env.ego_speed - self.max_speed, 0)
+        return -max(self._env.ego_speed - self.max_speed, 0)
 
 
 class TooSlowPenalty(RewardTerm):
@@ -159,7 +159,7 @@ class TooSlowPenalty(RewardTerm):
         if not self._env.blocked_at_red_light and \
                 not goal_reached and \
                 (self._env.ego_speed < self.min_speed):
-            return self.min_speed - self._env.ego_speed
+            return -(self.min_speed - self._env.ego_speed)
         return 0.0
 
 
@@ -176,4 +176,4 @@ class DrivingOnSidewalks(RewardTerm):
         reward = 0.0
         if self._env.current_waypoint.lane_type == carla.LaneType.Sidewalk:
             reward += 1.0
-        return reward
+        return -reward

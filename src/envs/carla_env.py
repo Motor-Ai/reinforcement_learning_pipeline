@@ -4,7 +4,7 @@ import sys
 from typing import Tuple, Any
 import random
 import carla # pylint: disable=no-member
-import pygame
+import pygame 
 import numpy as np
 from numpy.typing import NDArray
 import gymnasium as gym
@@ -105,7 +105,7 @@ class CarlaGymEnv(gym.Env):
             # TODO(FU): This is ugly asf and should be put into a config, I know.
             reward_terms={
                 "TimePenalty": {
-                    "weight": -1.0
+                    "weight": 1.0
                 },
                 "GoalImprovementReward": {
                     "weight": 1.0
@@ -114,22 +114,22 @@ class CarlaGymEnv(gym.Env):
                     "weight": 50.0
                 },
                 "CollisionPenalty": {
-                    "weight": -25.0 
+                    "weight": 25.0 
                 },
                 "IllegalLaneInvasions": {
-                    "weight": -25.0
+                    "weight": 25.0
                 },
                 "RedLightViolation": {
-                    "weight": -1.0
+                    "weight": 1.0
                 },
                 "EgoIsTooFast": {
-                    "weight": -1.0 
+                    "weight": 1.0 
                 },
                 "TooSlowPenalty": {
-                    "weight": -1.0
+                    "weight": 1.0
                 },
                 "DrivingOnSidewalks": {
-                    "weight": -25.0
+                    "weight": 25.0
                 },
             }
         )

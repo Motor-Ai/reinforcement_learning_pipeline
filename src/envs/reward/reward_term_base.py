@@ -7,7 +7,6 @@ if TYPE_CHECKING:
     import gymnasium as gym
 
 
-
 class RewardTerm(abc.ABC):
     """
     A class representing a reward function.
@@ -18,6 +17,8 @@ class RewardTerm(abc.ABC):
         # but we'd have to agree on how the config works.
         super().__init__()
         self._env: gym.Env = env
+
+        assert weight > 0.0, "Weight must be positive" # internally agreed on this.
         self._weight: float = weight
         self._cached_measurement: Optional[float] = None
         self._cached_at_step: int = -1
