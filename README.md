@@ -50,9 +50,13 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
 
 1. Download and install [CARLA 0.9.15](https://github.com/carla-simulator/carla/releases/tag/0.9.15/). Set up the CARLA_ROOT variable to point to your CARLA directory, and add it to the PYTHONPATH:
     ```bash
-    echo 'export CARLA_ROOT="/path/to/my/CARLA_0.9.15"' >> ~/.bashrc
-    echo 'export PYTHONPATH="${CARLA_ROOT}/PythonAPI/carla/dist/carla-0.9.14-py3.7-linux-x86_64.egg"' >> ~/.bashrc
-    source ~/.bashrc
+    source .venv/bin/activate
+    cat <<EOF >> .venv/bin/activate
+
+    # CARLA environment variables
+    export CARLA_ROOT="/path/to/my/CARLA_0.9.15"
+    export PYTHONPATH="\$CARLA_ROOT/PythonAPI/carla/dist/carla-0.9.15-py3.7-linux-x86_64.egg:\$PYTHONPATH"
+    EOF
     ```
 2. Using poetry: install poetry globally, then create venv and install dependencies inside the project folder:
     ```bash
