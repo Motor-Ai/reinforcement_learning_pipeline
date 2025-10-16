@@ -27,7 +27,7 @@ class ActionManager:
     action CARLA can perform."""
     def __init__(self, n_samples: int) -> None :
         self.n_samples = n_samples
-        #TODO: action space should rather be Multidiscrete than Box.
+        #TODO: action space should be Multidiscrete rather than Box
         # Define the action space: action = [longitudinal acceleration, lateral_offset]
         #TODO: these are placeholder values, rewrite with real limits
         max_acc, min_acc = 3.0, -3.0  # m/s^2

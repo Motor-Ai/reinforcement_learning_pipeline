@@ -65,10 +65,10 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
     ```bash
     pip install -r requirements.txt
     ```
-3. Set up the CARLA 'agents' lib by running:
+3. Link the CARLA 'agents' lib by running:
 
     ```bash
-    cp -r $CARLA_ROOT/PythonAPI/carla/agents/ .venv/lib/python3.10/site-packages/
+    ln -s $CARLA_ROOT/PythonAPI/carla/agents/ .venv/lib/python3.10/site-packages/
     ```
 
     replace `.venv` with the name of your virtual env dir.

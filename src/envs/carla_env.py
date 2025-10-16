@@ -186,8 +186,7 @@ class CarlaGymEnv(gym.Env):
             self.n_action_per_maneuver = N_ACTION_PER_MANEUVER
             self.action_space = spaces.MultiDiscrete([self.num_maneuvers, self.n_action_per_maneuver])
         else:
-            self.action_manager = ActionManager(
-                n_samples = NUM_ACTIONS)
+            self.action_manager = ActionManager(n_samples = NUM_ACTIONS)
             self.action_space = self.action_manager.action_space
 
         # Define the possible values for each dimension
