@@ -26,22 +26,22 @@ def train(config: DictConfig) -> None:
     # Don't use model.set_env() before, it will erase the VecNormalize layer.
     checkpoint_callback = EvalCallback(
         eval_env=eval_env,
-        n_eval_episodes=5,
-        eval_freq=1000,
+        n_eval_episodes=config.n_eval_episode,
+        eval_freq=config.eval_frequency,
         best_model_save_path=config.save_path,
         log_path=None, # specify path to save results
-        verbose=1,
+        verbose=config.verbose,
     )
     logging_callback = LoggerCallback(
-        save_freq=1000,
-        verbose=1,
+        save_freq=config.logging_freq,
+        verbose=config.verbose,
     )
 
     # Train A2C agent
-    model = A2C("MultiInputPolicy", env, verbose=1, tensorboard_log="./tensorboard/")
+    model = A2C("MultiInputPolicy", env, verbose=config.verbose, tensorboard_log=config.tensorboard_dir)
 
     try:
-        model.learn(total_timesteps=500_000, callback=[logging_callback, checkpoint_callback])
+        model.learn(total_timesteps=config.max_n_steps, callback=[logging_callback, checkpoint_callback])
     except KeyboardInterrupt:
         print("Training interrupted.")
 

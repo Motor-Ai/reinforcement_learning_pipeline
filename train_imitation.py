@@ -65,17 +65,6 @@ def train_imitation(config: DictConfig):
 
     env = DummyVecEnv([lambda: instantiate(config.env)])
 
-    # make_vec_env(
-    #     "seals:seals/CartPole-v0",
-    #     rng=rng,
-    #     post_wrappers=[lambda env, _: RolloutInfoWrapper(env)],  # for computing rollouts
-    # )
-
-    # print(env.observation_space.contains())
-    # print(env.action_space.contains())
-    print(env.action_space)
-    print(env.observation_space)
-
     transitions = sample_expert_transitions(env, rng)
     bc_trainer = bc.BC(
         observation_space=env.observation_space,
@@ -83,12 +72,6 @@ def train_imitation(config: DictConfig):
         demonstrations=transitions,
         rng=rng,
     )
-
-    # evaluation_env = make_vec_env(
-    #     "seals:seals/CartPole-v0",
-    #     rng=rng,
-    #     env_make_kwargs={"render_mode": "human"},  # for rendering
-    # )
 
     evaluation_env = DummyVecEnv([lambda: instantiate(config.env)])
 
