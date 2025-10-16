@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Optional, Protocol, cast
 import carla
 
 if TYPE_CHECKING:
     import gymnasium as gym
 
 
-@runtime_checkable
 class GeneralEnv(Protocol):
     """A placeholder protocol for """
     cumulative_step: int
@@ -30,13 +29,12 @@ class RewardTerm(abc.ABC):
     """
 
     def __init__(self, env: gym.Env, weight: float):
-        # TODO(FU): I would also add config as an argument, 
+        # TODO(FU): I would also add config as an argument,
         # but we'd have to agree on how the config works.
         super().__init__()
 
-        # TODO(FU): Remove this check once we implement an env general class.
-        assert isinstance(env, GeneralEnv), "The environment doesn't implement required functionality."
-        self._env = env
+        # TODO(FU): Remove this cast once we implement an env general class.
+        self._env = cast(GeneralEnv, env)
 
         assert weight > 0.0, "Weight must be positive" # internally agreed on this.
         self._weight: float = weight

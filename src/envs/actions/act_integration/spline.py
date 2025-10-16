@@ -39,10 +39,8 @@ def get_curvature_arr(x_arr, y_arr):
         # Compute the first derivative (dx/dt, dy/dt) and arc length (ds/dt).
         dx_dt = np.gradient(x_arr)
         dy_dt = np.gradient(y_arr)
-        ds_dt = np.sqrt(dx_dt * dx_dt + dy_dt * dy_dt)
 
         # Compute the second derivative.
-        d2s_dt2 = np.gradient(ds_dt)
         d2x_dt2 = np.gradient(dx_dt)
         d2y_dt2 = np.gradient(dy_dt)
 
@@ -93,14 +91,9 @@ def filter_input(x_arr, y_arr, dl):
     # Remove consecutive duplicate points.
     xy_inp_unique = eliminate_duplicates(xy_inp)
 
-    try:
-        # Extract unique x and y coordinates.
-        x_arr_unique = xy_inp_unique[:, 0]
-        y_arr_unique = xy_inp_unique[:, 1]
-    except:
-        # If extraction fails, return empty arrays.
-        x_arr_unique = np.array([])
-        y_arr_unique = np.array([])
+    # Extract unique x and y coordinates.
+    x_arr_unique = xy_inp_unique[:, 0]
+    y_arr_unique = xy_inp_unique[:, 1]
 
     if len(x_arr_unique) > 1:
         # Calculate consecutive distances between points.
@@ -131,31 +124,22 @@ def calc_spline_course(x_arr, y_arr, input_res, output_res):
     Returns:
         tuple: Spline-interpolated x, y, yaw, and curvature arrays.
     """
-    try:
-        # Filter out repetitive and too-close points.
-        x, y = filter_input(x_arr, y_arr, output_res)
+    # Create a spline function based on the filtered input.
+    f, u = splprep([x_arr, y_arr], s=0)
 
-        # Create a spline function based on the filtered input.
-        f, u = splprep([x_arr, y_arr], s=0)
+    # Calculate the resolution ratio between input and output.
+    res_ratio = int(input_res / output_res)
 
-        # Calculate the resolution ratio between input and output.
-        res_ratio = int(input_res / output_res)
+    # Generate interpolated x and y points using the spline function.
+    x_spline, y_spline = splev(np.linspace(0, 1, int(len(x_arr) * res_ratio)), f)
 
-        # Generate interpolated x and y points using the spline function.
-        x_spline, y_spline = splev(np.linspace(0, 1, int(len(x_arr) * res_ratio)), f)
+    # Calculate yaw angles along the spline.
+    yaw_spline = get_heading_arr(x_spline, y_spline)
 
-        # Calculate yaw angles along the spline.
-        yaw_spline = get_heading_arr(x_spline, y_spline)
+    # Calculate curvature along the spline.
+    curvature_spline = get_curvature_arr(x_spline, y_spline)
 
-        # Calculate curvature along the spline.
-        curvature_spline = get_curvature_arr(x_spline, y_spline)
-
-        return x_spline, y_spline, yaw_spline, curvature_spline
-    except Exception as e:
-        # Handle errors and return empty results if input is invalid.
-        print("calc_spline_course (spline.py) : Interpolation step invalid input")
-        print(e)
-        return [], [], [], []
+    return x_spline, y_spline, yaw_spline, curvature_spline
 
 
 def calc_spline_course_2(x_arr, y_arr, path_len, output_res):
@@ -171,29 +155,20 @@ def calc_spline_course_2(x_arr, y_arr, path_len, output_res):
     Returns:
         tuple: Spline-interpolated x, y, yaw, and curvature arrays.
     """
-    try:
-        # Filter out repetitive and too-close points.
-        x, y = filter_input(x_arr, y_arr, output_res)
+    # Create a spline function based on the filtered input.
+    f, u = splprep([x_arr, y_arr])
 
-        # Create a spline function based on the filtered input.
-        f, u = splprep([x_arr, y_arr])
+    # Generate interpolated x and y points using the spline function.
+    x_spline, y_spline = splev(np.linspace(0, 1, int(path_len / output_res)), f)
 
-        # Generate interpolated x and y points using the spline function.
-        x_spline, y_spline = splev(np.linspace(0, 1, int(path_len / output_res)), f)
+    # Calculate yaw angles along the spline.
+    yaw_spline = get_heading_arr(x_spline, y_spline)
 
-        # Calculate yaw angles along the spline.
-        yaw_spline = get_heading_arr(x_spline, y_spline)
+    # Calculate curvature along the spline.
+    curvature_spline = get_curvature_arr(x_spline, y_spline)
 
-        # Calculate curvature along the spline.
-        curvature_spline = get_curvature_arr(x_spline, y_spline)
-
-        # Return the results as lists.
-        return x_spline.tolist(), y_spline.tolist(), yaw_spline.tolist(), curvature_spline.tolist()
-    except Exception as e:
-        # Handle errors and return empty results if input is invalid.
-        print("calc_spline_course_2 (spline.py) : Interpolation step invalid input")
-        print(e)
-        return [], [], [], []
+    # Return the results as lists.
+    return x_spline.tolist(), y_spline.tolist(), yaw_spline.tolist(), curvature_spline.tolist()
 
 def approximate_b_spline_path_new(x: list,
                               y: list,
@@ -289,7 +264,7 @@ def _calc_distance_vector(x, y, normalize=True):
     dx, dy = np.diff(x), np.diff(y)
     distances = np.cumsum([np.hypot(idx, idy) for idx, idy in zip(dx, dy)])
     distances = np.concatenate(([0.0], distances))
-    if normalize:
+    if normalize and distances[-1] > 0:
         distances /= distances[-1]
     return distances
 
@@ -325,28 +300,19 @@ def calc_bspline_course(x_arr, y_arr, input_res, output_res):
     Returns:
         tuple: B-spline interpolated x, y, yaw, and curvature arrays.
     """
-    try:
-        # Filter out repetitive and too-close points based on output resolution
-        x, y = filter_input(x_arr, y_arr, output_res)
+    # Calculate the resolution ratio between input and output
+    res_ratio = int(input_res / output_res)
 
-        # Calculate the resolution ratio between input and output
-        res_ratio = int(input_res / output_res)
+    # Generate interpolated x and y points using the B-spline function
+    x_spline, y_spline = approximate_b_spline_path(x_arr, y_arr, int(len(x_arr) * res_ratio), s=0.5)
 
-        # Generate interpolated x and y points using the B-spline function
-        x_spline, y_spline = approximate_b_spline_path(x_arr, y_arr, int(len(x_arr) * res_ratio), s=0.5)
+    # Calculate yaw angles along the B-spline
+    yaw_spline = get_heading_arr(x_spline, y_spline)
 
-        # Calculate yaw angles along the B-spline
-        yaw_spline = get_heading_arr(x_spline, y_spline)
+    # Calculate curvature along the B-spline
+    curvature_spline = get_curvature_arr(x_spline, y_spline)
 
-        # Calculate curvature along the B-spline
-        curvature_spline = get_curvature_arr(x_spline, y_spline)
-
-        return x_spline, y_spline, yaw_spline, curvature_spline
-    except Exception as e:
-        # Handle errors and return empty results if input is invalid
-        print("calc_bspline_course (spline.py) : Interpolation step invalid input")
-        print(e)
-        return [], [], [], []
+    return x_spline, y_spline, yaw_spline, curvature_spline
 
 
 def calc_bspline_course_2(x_arr, y_arr, path_len, output_res):
@@ -361,24 +327,15 @@ def calc_bspline_course_2(x_arr, y_arr, path_len, output_res):
 
     Returns:
         tuple: B-spline interpolated x, y, yaw, and curvature lists.
-    """
-    try:
-        # Filter out repetitive and too-close points based on output resolution
-        x, y = filter_input(x_arr, y_arr, output_res)
-        
-        # Generate interpolated x and y points using the B-spline function
-        x_spline, y_spline = approximate_b_spline_path(x_arr, y_arr, int(path_len / output_res), s=0.5)
+    """  
+    # Generate interpolated x and y points using the B-spline function
+    x_spline, y_spline = approximate_b_spline_path(x_arr, y_arr, int(path_len / output_res), s=0.5)
 
-        # Calculate yaw angles along the B-spline
-        yaw_spline = get_heading_arr(x_spline, y_spline)
+    # Calculate yaw angles along the B-spline
+    yaw_spline = get_heading_arr(x_spline, y_spline)
 
-        # Calculate curvature along the B-spline
-        curvature_spline = get_curvature_arr(x_spline, y_spline)
+    # Calculate curvature along the B-spline
+    curvature_spline = get_curvature_arr(x_spline, y_spline)
 
-        # Convert the results to lists and return
-        return x_spline.tolist(), y_spline.tolist(), yaw_spline.tolist(), curvature_spline.tolist()
-    except Exception as e:
-        # Handle errors and return empty results if input is invalid
-        print("calc_bspline_course_2 (spline.py) : Interpolation step invalid input")
-        print(e)
-        return [], [], [], []
+    # Convert the results to lists and return
+    return x_spline.tolist(), y_spline.tolist(), yaw_spline.tolist(), curvature_spline.tolist()
