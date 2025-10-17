@@ -20,7 +20,7 @@ class ActionManager:
         self.action_fields = action_fields
         self.n_samples = n_samples
         self.action_space = spaces.Box(low=np.repeat(np.array([-1, -1, -1]), repeats=n_samples, axis=0), 
-                                        high=np.repeat(np.array([-1, -1, -1]), repeats=n_samples, axis=0), 
+                                        high=np.repeat(np.array([1, 1, 1]), repeats=n_samples, axis=0), 
                                         dtype=np.float32)
 
     # def _build_space(self) -> spaces.Dict:
@@ -199,7 +199,7 @@ class ActionManager:
 
         # === Generate a B-spline path with 0.1m resolution ===
         x_arr, y_arr, yaw_arr, _ = sp.calc_bspline_course_2(ref_x, ref_y, path_len, 0.1)
-        print(f"Processed path to {len(x_arr)} points.")
+        # print(f"Processed path to {len(x_arr)} points.")
 
         ego_vel_lon, ego_vel_lat = ego_state[-2], ego_state[-1]
 

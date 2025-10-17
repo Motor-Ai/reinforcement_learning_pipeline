@@ -20,6 +20,8 @@ class ObservationManager:
         # Initialize BEV observer (your original code uses FUTURE_LEN=1)
         self.bev_info = Vector_BEV_observer(FUTURE_LEN=1)
 
+        self.n_agent_features  = max(list(agent_feat_id.values()))+1  # Number of features for each agent (including neighbors)
+        self.n_map_features    = max(list(traffic_feat_idx.values()))+1  # Number of features for each map element
         self.observation_space = self._build_space()
 
     def _build_space(self) -> spaces.Dict:
@@ -32,19 +34,19 @@ class ObservationManager:
         for obs_name in self.obs_keys:
             if obs_name == "ego":
                 if self.preprocess_observations:
-                    obs["ego"] = spaces.Box(low=-1, high=1, shape=(1, self.bev_info.HISTORY, 7), dtype=np.float32)
+                    obs["ego"] = spaces.Box(low=-1, high=1, shape=(1, self.bev_info.HISTORY, len(self.preprocessor.ego_attr_keep)), dtype=np.float32)
                 else:
-                    obs["ego"] = spaces.Box(low=-np.inf, high=np.inf, shape=(1, self.bev_info.HISTORY, 24), dtype=np.float32)
+                    obs["ego"] = spaces.Box(low=-np.inf, high=np.inf, shape=(1, self.bev_info.HISTORY, self.n_agent_features), dtype=np.float32)
             elif obs_name == "neighbors":
                 if self.preprocess_observations:
-                    obs["neighbors"] = spaces.Box(low=-1, high=1, shape=(1, self.bev_info.MAX_NEIGHBORS, self.bev_info.HISTORY, 7), dtype=np.float32)
+                    obs["neighbors"] = spaces.Box(low=-1, high=1, shape=(1, self.bev_info.MAX_NEIGHBORS, self.bev_info.HISTORY, len(self.preprocessor.neighbor_attr_keep)), dtype=np.float32)
                 else:
-                    obs["neighbors"] = spaces.Box(low=-np.inf, high=np.inf, shape=(1, self.bev_info.MAX_NEIGHBORS, self.bev_info.HISTORY, 24), dtype=np.float32)
+                    obs["neighbors"] = spaces.Box(low=-np.inf, high=np.inf, shape=(1, self.bev_info.MAX_NEIGHBORS, self.bev_info.HISTORY, self.n_agent_features), dtype=np.float32)
             elif obs_name == "map":
                 if self.preprocess_observations:
-                    obs["map"] = spaces.Box(low=-1, high=1, shape=(1, self.bev_info.MAX_LANES, self.bev_info.MAX_LANE_LEN, 10), dtype=np.float32)
+                    obs["map"] = spaces.Box(low=-1, high=1, shape=(1, self.bev_info.MAX_LANES, self.bev_info.MAX_LANE_LEN, len(self.preprocessor.map_attr_keep)), dtype=np.float32)
                 else:
-                    obs["map"] = spaces.Box(low=-np.inf, high=np.inf, shape=(1, self.bev_info.MAX_LANES, self.bev_info.MAX_LANE_LEN, 46), dtype=np.float32)
+                    obs["map"] = spaces.Box(low=-np.inf, high=np.inf, shape=(1, self.bev_info.MAX_LANES, self.bev_info.MAX_LANE_LEN, self.n_map_features), dtype=np.float32)
             elif obs_name == "global_route":
                 if self.preprocess_observations:
                     obs["global_route"] = spaces.Box(low=-1, high=1, shape=(self.bev_info.MAX_LANE_LEN, 3), dtype=np.float32)
@@ -130,7 +132,7 @@ class Preprocessor:
         # remove unnecessary attributes
         ego_data = observation['ego'][..., self.ego_attr_keep]
         neighbors_data = observation['neighbors'][..., self.ego_attr_keep] # keep the same attributes as ego
-        map_data = observation['map'][..., self.map_attr_keep]
+        map_data = observation['map']#[..., self.map_attr_keep]
 
         #TODO: modularize
         processed_observation = {
