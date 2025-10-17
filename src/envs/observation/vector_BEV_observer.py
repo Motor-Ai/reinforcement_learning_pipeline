@@ -16,7 +16,7 @@ from time import sleep
 # sys.path.append(PATH)
 
 # from carla import ad
-from src.envs.observation.decision_traffic_rules.feature_indices import agent_feat_id
+from src.envs.observation.decision_traffic_rules.feature_indices import agent_feat_id, rss_feat_id
 from src.envs.observation.decision_traffic_rules.traffic_sign_db import traffic_feat_idx, regulatory_ts_encoding
 # from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 
@@ -607,38 +607,38 @@ class Vector_BEV_observer:
                         added = False
                         for state in rss_states:
                             if state[0] == actor.id:
-                                neighbor_location[i, agent_feat_id['rss_obj_id']] = state[0]
-                                neighbor_location[i, agent_feat_id['rss_status']] = state[1]
-                                neighbor_location[i, agent_feat_id['rss_long_current_dist']] = state[2]
-                                neighbor_location[i, agent_feat_id['rss_long_safe_dist']] = state[3]
-                                neighbor_location[i, agent_feat_id['rss_lat_current_right_dist']] = state[4]
-                                neighbor_location[i, agent_feat_id['rss_lat_safe_right_dist']] = state[5]
-                                neighbor_location[i, agent_feat_id['rss_lat_current_left_dist']] = state[6]
-                                neighbor_location[i, agent_feat_id['rss_lat_safe_left_dist']] = state[7]
+                                neighbor_location[i, rss_feat_id['rss_obj_id']] = state[0]
+                                neighbor_location[i, rss_feat_id['rss_status']] = state[1]
+                                neighbor_location[i, rss_feat_id['rss_long_current_dist']] = state[2]
+                                neighbor_location[i, rss_feat_id['rss_long_safe_dist']] = state[3]
+                                neighbor_location[i, rss_feat_id['rss_lat_current_right_dist']] = state[4]
+                                neighbor_location[i, rss_feat_id['rss_lat_safe_right_dist']] = state[5]
+                                neighbor_location[i, rss_feat_id['rss_lat_current_left_dist']] = state[6]
+                                neighbor_location[i, rss_feat_id['rss_lat_safe_left_dist']] = state[7]
                                 added = True
                                 break
                         if not added:
                             print(
                                 f"\n{'='*50}\n🚨 RSS states not added for neighbor with id: ", actor.id
                             )
-                            neighbor_location[i, agent_feat_id['rss_obj_id']] = RSS_NOT_FOUND_VALUE
-                            neighbor_location[i, agent_feat_id['rss_status']] = RSS_NOT_FOUND_VALUE
-                            neighbor_location[i, agent_feat_id['rss_long_current_dist']] = RSS_NOT_FOUND_VALUE
-                            neighbor_location[i, agent_feat_id['rss_long_safe_dist']] = RSS_NOT_FOUND_VALUE
-                            neighbor_location[i, agent_feat_id['rss_lat_current_right_dist']] = RSS_NOT_FOUND_VALUE
-                            neighbor_location[i, agent_feat_id['rss_lat_safe_right_dist']] = RSS_NOT_FOUND_VALUE
-                            neighbor_location[i, agent_feat_id['rss_lat_current_left_dist']] = RSS_NOT_FOUND_VALUE
-                            neighbor_location[i, agent_feat_id['rss_lat_safe_left_dist']] = RSS_NOT_FOUND_VALUE
+                            neighbor_location[i, rss_feat_id['rss_obj_id']] = RSS_NOT_FOUND_VALUE
+                            neighbor_location[i, rss_feat_id['rss_status']] = RSS_NOT_FOUND_VALUE
+                            neighbor_location[i, rss_feat_id['rss_long_current_dist']] = RSS_NOT_FOUND_VALUE
+                            neighbor_location[i, rss_feat_id['rss_long_safe_dist']] = RSS_NOT_FOUND_VALUE
+                            neighbor_location[i, rss_feat_id['rss_lat_current_right_dist']] = RSS_NOT_FOUND_VALUE
+                            neighbor_location[i, rss_feat_id['rss_lat_safe_right_dist']] = RSS_NOT_FOUND_VALUE
+                            neighbor_location[i, rss_feat_id['rss_lat_current_left_dist']] = RSS_NOT_FOUND_VALUE
+                            neighbor_location[i, rss_feat_id['rss_lat_safe_left_dist']] = RSS_NOT_FOUND_VALUE
                     else:
                         # print("\n{'='*50}\n🚨 RSS states not added for neighbor with id: ", actor.id)
-                        neighbor_location[i, agent_feat_id['rss_obj_id']] = RSS_NOT_FOUND_VALUE
-                        neighbor_location[i, agent_feat_id['rss_status']] = RSS_NOT_FOUND_VALUE
-                        neighbor_location[i, agent_feat_id['rss_long_current_dist']] = RSS_NOT_FOUND_VALUE
-                        neighbor_location[i, agent_feat_id['rss_long_safe_dist']] = RSS_NOT_FOUND_VALUE
-                        neighbor_location[i, agent_feat_id['rss_lat_current_right_dist']] = RSS_NOT_FOUND_VALUE
-                        neighbor_location[i, agent_feat_id['rss_lat_safe_right_dist']] = RSS_NOT_FOUND_VALUE
-                        neighbor_location[i, agent_feat_id['rss_lat_current_left_dist']] = RSS_NOT_FOUND_VALUE
-                        neighbor_location[i, agent_feat_id['rss_lat_safe_left_dist']] = RSS_NOT_FOUND_VALUE
+                        neighbor_location[i, rss_feat_id['rss_obj_id']] = RSS_NOT_FOUND_VALUE
+                        neighbor_location[i, rss_feat_id['rss_status']] = RSS_NOT_FOUND_VALUE
+                        neighbor_location[i, rss_feat_id['rss_long_current_dist']] = RSS_NOT_FOUND_VALUE
+                        neighbor_location[i, rss_feat_id['rss_long_safe_dist']] = RSS_NOT_FOUND_VALUE
+                        neighbor_location[i, rss_feat_id['rss_lat_current_right_dist']] = RSS_NOT_FOUND_VALUE
+                        neighbor_location[i, rss_feat_id['rss_lat_safe_right_dist']] = RSS_NOT_FOUND_VALUE
+                        neighbor_location[i, rss_feat_id['rss_lat_current_left_dist']] = RSS_NOT_FOUND_VALUE
+                        neighbor_location[i, rss_feat_id['rss_lat_safe_left_dist']] = RSS_NOT_FOUND_VALUE
 
                     neigh_closest_wp = self.carla_map.get_waypoint(actor.get_location(), project_to_road=True, lane_type=(carla.LaneType.Driving)) # TODO improve filtering
                     neighbor_location[i, agent_feat_id["road_id"]] = neigh_closest_wp.road_id
@@ -654,7 +654,8 @@ class Vector_BEV_observer:
                         other_relative_priority = get_rel_prio_intersection(self.ego, actor, self.carla_map)
                         neighbor_location[i, agent_feat_id["relative_priority"]] = other_relative_priority
                     except:
-                        print("ERROR IN RELATIVE PRIORITY")
+                        pass
+                        # print("ERROR IN RELATIVE PRIORITY")
                     i +=1
                     # import time
                     # time.sleep(1.0)

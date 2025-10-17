@@ -1,3 +1,12 @@
+# Unset=0, Vehicle=1, Pedestrian=2, Cyclist=3, Other=4
+agent_classes = {
+    "default":0,
+    "vehicle":1,
+    "pedestrian":2,
+    "cyclist":3,
+    "other":4,
+}
+
 agent_feat_id = {
     "id" : 0, # tracking id [int]
     "x": 1,  # location [m]
@@ -14,13 +23,22 @@ agent_feat_id = {
     "lane_id": 12,  # lane identifier (within road) [int] sign indicates direction of travel
     "is_junction": 13,  # if agent is in junction --- currently being  scoped ---
     "s" : 14, # distance towards end of lane in frenet frame --- currently being  scoped ---
-    "rss_obj_id": 15, # int --- currently being  scoped ---
-    "rss_status": 16, # TODO: unit --- currently being  scoped ---
-    "rss_long_current_dist": 17, # TODO: unit --- currently being  scoped ---
-    "rss_long_safe_dist": 18, # TODO: unit --- currently being  scoped ---
-    "rss_lat_current_right_dist": 19, # TODO: unit --- currently being  scoped ---
-    "rss_lat_safe_right_dist": 20, # TODO: unit --- currently being  scoped ---
-    "rss_lat_current_left_dist": 21, # TODO: unit --- currently being  scoped ---
-    "rss_lat_safe_left_dist": 22, # TODO: unit --- currently being  scoped ---
-    "relative_priority": 23, # TODO: unit --- currently being  scoped ---
+    "turning_intention" :15, # what direction is the agent manuever changing [categorical]
+}
+
+rss_feat_id = {
+    "rss_obj_id": 0, # int --- currently being  scoped ---
+    "rss_status": 1, # TODO: unit --- currently being  scoped ---
+    "rss_long_current_dist": 2, # TODO: unit --- currently being  scoped ---
+    "rss_long_safe_dist": 3, # TODO: unit --- currently being  scoped ---
+    "rss_lat_current_right_dist": 4, # TODO: unit --- currently being  scoped ---
+    "rss_lat_safe_right_dist": 5, # TODO: unit --- currently being  scoped ---
+    "rss_lat_current_left_dist": 6, # TODO: unit --- currently being  scoped ---
+    "rss_lat_safe_left_dist": 7, # TODO: unit --- currently being  scoped ---
+}
+
+turning_intention = {
+    "left":-1,
+    "none":0,
+    "right":1
 }

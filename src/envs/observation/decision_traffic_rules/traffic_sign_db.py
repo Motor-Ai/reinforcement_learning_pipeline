@@ -1,30 +1,17 @@
-# DIPP Lane Features
-# centerline_x
-# centerline_y
-# centerline_yaw
-# leftline_x
-# leftline_y
-# leftline_yaw
-# rightline_x
-# rightline_y
-# rightline_yaw
-# speed_limit
-# centerline_type
-# leftline_type
-# rightline_type
-# traffic_light_type
-# stop_point
-# interpolating
-# stop_sign
-
 # Source: https://routetogermany.com/drivingingermany/road-signs#supplementary-signs
 
-warning_ts_encoding = {"traffic_sign_ahead": 1, "pedestrian_crossing": 2}
+warning_ts_encoding = {"traffic_sign_ahead": 1, 
+                       "pedestrian_crossing": 2}
+
+supplementary_ts_encoding = {"no_entry": 1}
 
 regulatory_ts_encoding = {
     "stop_sign": 1,
     "yield_right_of_way": 2,
     "no_entry": 3,
+    "round_about": 4,
+    "no_overtaking": 5,
+    "bus_stop" : 6,
     "speed_limit_20": 20,
     "speed_limit_30": 30,
     "speed_limit_40": 40,
@@ -40,6 +27,9 @@ directional_ts_encoding = {
     "priority_at_intersection": 1,
     "right_ahead": 2,
     "left_ahead": 3,
+    "priority_road":4,
+    "autobahn_start":5,
+    "autobahn_end":6,
 }
 
 installations_ts_encoding = {
@@ -47,13 +37,73 @@ installations_ts_encoding = {
     "left_obstruction_marker": 2,
 }
 
-lane_type = {
+lane_marking_type = {
     "dashed": 1,
     "yellow_dashed": 2,
     "yellow_solid": 3,
     "double_dashed": 4,
     "other": 5,
     "solid": 6,
+    "line_thin": 7,
+}
+
+left_passable_types = {
+    "dashed": 16,           # LABEL_LINE_MARKING_DASHED,
+    "solid_dashed": 18,     # LABEL_LINE_MARKING_SOLID_DASHED,
+}
+
+right_passable_types = {
+    "dashed": 16,           # LABEL_LINE_MARKING_DASHED,
+    "dashed_solid": 17,     # LABEL_LINE_MARKING_DASHED_SOLID,
+}
+
+traffic_sign_type_labels = {
+    -205: "yield_right_of_way",     # LABEL_TRAFFIC_SIGN_205
+    -206: "stop_sign",              # LABEL_TRAFFIC_SIGN_206
+    -27430: "speed_limit_30",       # LABEL_TRAFFIC_SIGN_27430
+    -27450: "speed_limit_50",       # LABEL_TRAFFIC_SIGN_27450
+    -27470: "speed_limit_70",       # LABEL_TRAFFIC_SIGN_27470
+}
+
+traffic_light_type = {
+    "pedestrian": 1,
+    "directional": 2,
+    "construction": 3,
+}
+
+traffic_light_state = {
+    "red": 1,
+    "yellow": 2,
+    "green": 3,
+    "inactive": 4,
+}
+
+lane_surface_type = {
+    "Concrete":1, 
+    "asphalt":2,
+    "Gravel":3,
+    "Pavement":4,
+}
+
+lane_type = {"road":1,
+          "crosswalk":2,
+          "motorway":3,
+          "bicycle_lane":4,
+          "pedestrian_lane":5,
+          "bus_lane":6,
+          }
+
+lane_morphology_type = {
+    "straight": 1,
+    "curve": 2,
+    "sloped": 3,
+    "None": 4,
+    "roundabout": 5,
+    "merge":6,
+    "split":7,
+    "turn":8,
+    "bus_lane":9,
+    "intersection":10,
 }
 
 # influenced by: https://github.com/fzi-forschungszentrum-informatik/Lanelet2/blob/master/lanelet2_core/doc/RegulatoryElementTagging.md
@@ -105,5 +155,9 @@ traffic_feat_idx = {
     "s": 42,
     "road_id": 43, 
     "lane_id": 44,
-    "is_route": 45, # 0: not on route, 1: on route
+    "lane_morphology": 45, # the type of lane morphology [lane_morphology_type]
+    "lane_type": 46, # the type of lane [lane_type]
+    "lane_surface": 47, # the type of lane surface [lane_surface_type]
+    "tl_state": 48,  # Index of the traffic light state
+    "is_route": 49, # whether the lane is part of the planned route
 }
