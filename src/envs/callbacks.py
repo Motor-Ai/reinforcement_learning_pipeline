@@ -147,9 +147,9 @@ class LoggerCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         """Called every step during training."""
-        actions_0 = self.locals["actions"][0, 0]
-        actions_1 = self.locals["actions"][0, 1]
-        actions_2 = self.locals["actions"][0, 2]
+        actions_0 = self.locals["clipped_actions"][0, 0]
+        actions_1 = self.locals["clipped_actions"][0, 1]
+        actions_2 = self.locals["clipped_actions"][0, 2]
         self.action_buffer_0.append(actions_0)
         self.action_buffer_1.append(actions_1)
         self.action_buffer_2.append(actions_2)

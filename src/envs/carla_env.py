@@ -7,6 +7,7 @@ import gymnasium as gym
 from gymnasium import spaces
 import os
 import sys
+import torch
 import yaml  # Import YAML parser
 from typing import Optional, Tuple, Any
 
@@ -52,6 +53,38 @@ display_width = config["display_width"]
 display_height = config["display_height"]
 
 MAI_ACTION_SPACE = True
+
+def bicycle_model(control, current_state):
+    dt = 1 # discrete time period [s]
+    max_delta = 0.6 # vehicle's steering limits [rad]
+    max_a = 5 # vehicle's accleration limits [m/s^2]
+
+    x_0 = current_state[:, 0] # vehicle's x-coordinate [m]
+    y_0 = current_state[:, 1] # vehicle's y-coordinate [m]
+    theta_0 = current_state[:, 2] # vehicle's heading [rad]
+    v_0 = torch.hypot(current_state[:, 3], current_state[:, 4]) # vehicle's velocity [m/s]
+    L = 3.089 # vehicle's wheelbase [m]
+    a = control[:, :, 0].clamp(-max_a, max_a) # vehicle's accleration [m/s^2]
+    delta = control[:, :, 1].clamp(-max_delta, max_delta) # vehicle's steering [rad]
+
+    # speed
+    v = v_0.unsqueeze(1) + torch.cumsum(a * dt, dim=1)
+    v = torch.clamp(v, min=0)
+
+    # angle
+    d_theta = v * delta / L # use delta to approximate tan(delta)
+    theta = theta_0.unsqueeze(1) + torch.cumsum(d_theta * dt, dim=-1)
+    theta = torch.fmod(theta, 2*torch.pi)
+    
+    # x and y coordniate
+    x = x_0.unsqueeze(1) + torch.cumsum(v * torch.cos(theta) * dt, dim=-1)
+    y = y_0.unsqueeze(1) + torch.cumsum(v * torch.sin(theta) * dt, dim=-1)
+    
+    # output trajectory
+    traj = torch.nn.functional.pad(torch.stack([ x, y, theta, v], dim=-1), (1,0))
+
+    return traj
+
 
 class CarlaGymEnv(gym.Env):
     """
@@ -241,6 +274,8 @@ class CarlaGymEnv(gym.Env):
         self.timestep = 0
         self.collision_detected = False
 
+        self.wp_index = 3  # Index of the waypoint to follow
+
         # Spawn Ego Vehicle
         vehicle_bp = self.blueprint_library.filter('vehicle.tesla.model3')[0]
         vehicle_bp.set_attribute("role_name", "hero")
@@ -342,6 +377,9 @@ class CarlaGymEnv(gym.Env):
         # Optionally store the original start and destination too.
         self.global_route_start = start_location
         self.global_route_destination = destination
+        self.prev_distance = self.compute_distance_to_goal(start_location)
+        # self.prev_distance = np.linalg.norm(np.array([start_location.x, start_location.y]) - 
+        #                                     np.array([destination.location.x, destination.location.y]))
 
     def _transform_to_ego_frame(self):
         # Now, convert the global route into the ego frame.
@@ -419,13 +457,13 @@ class CarlaGymEnv(gym.Env):
                     action_point = np.array([0.0, 0.0])
 
             else: 
-                if len(global_route_ego_frame_no_padding) > 1:
+                if len(global_route_ego_frame_no_padding) > 5:
                     # Action from Policy converted to Frenet to determine the target point
                     # ref_path = np.unique(global_route_ego_frame_no_padding[:,:2], axis = -1)
                     path_x, path_y, path_yaw, path_vel, path_time = self.action_manager.get_path(action, global_route_ego_frame_no_padding[:,:2], 
                                                                                                 ego_state, plan_time_range=3.0, plan_dt=0.2)
-                    TARGET_PT_IDX = 2 # NOTE: PARAM to set which point to use from the planned path
-                    action_point = np.array([path_x[TARGET_PT_IDX], path_y[TARGET_PT_IDX]]) # Take the second point in the planned path
+                    TARGET_PT_IDX = 5 # NOTE: PARAM to set which point to use from the planned path
+                    action_point = np.array([path_x[TARGET_PT_IDX], path_y[TARGET_PT_IDX]])
                 else:
                     action_point = np.array([0.0, 0.0])
 
@@ -451,6 +489,7 @@ class CarlaGymEnv(gym.Env):
             # Calculate control command using the PID controller and apply it
             control = self.pid_controller.run_step(target_speed, target_waypoint)
             self.ego_vehicle.apply_control(control)
+
         else:
             # Autopilot is enabled, so ignore the provided action.
             pass
@@ -468,10 +507,13 @@ class CarlaGymEnv(gym.Env):
 
         ######################### Reward and termination ############################
         # Compute distance to goal
-        distance_to_goal = self.compute_distance_to_goal(target_location)
-        reward = self.reward_func(distance_to_goal, self.prev_distance, self.collision_detected, self.timestep)
+        distance_to_goal = self.compute_distance_to_goal(self.ego_vehicle.get_location())
+        speed = self.ego_vehicle.get_velocity()
+        speed = np.linalg.norm(np.array([speed.x, speed.y])) * 3.6  # in km/h
+        info["speed"] = speed
+        reward = self.reward_func(distance_to_goal, self.prev_distance, self.collision_detected, self.timestep, speed)
+        self.prev_distance = distance_to_goal
         info["distance_to_goal"] = distance_to_goal
-
         # Check if goal is reached
         goal_reached = distance_to_goal < self.goal_threshold
         info["goal_reached"] = goal_reached
@@ -585,6 +627,68 @@ class CarlaGymEnv(gym.Env):
         sub_action = np.random.randint(0, self.n_action_per_maneuver)  # Random sub-action index
 
         return np.array([maneuver, sub_action])
+    
+    def __call__(self, *args, **kwds):
+        # This would allow the env to be called like a function to get the MAI action from CARLA autopilot
+        # In this case it would also enable the CARLA autopilot to be used as a policy
+        return self.compute_MAI_action_from_CARLA_autopilot(*args, **kwds)
+
+    def compute_MAI_action_from_CARLA_autopilot(self, *args, **kwds) -> np.ndarray|Tuple[np.ndarray, np.ndarray]:
+
+        control = self.ego_vehicle.get_control()
+        transform = self.ego_vehicle.get_transform()
+        velocity = self.ego_vehicle.get_velocity()
+        location = transform.location
+        #  Apply bicycle model
+        next_target_point = bicycle_model(torch.tensor([[[control.throttle, control.steer]]]),
+                                 torch.tensor([[location.x, location.y, np.deg2rad(transform.rotation.yaw), velocity.x, velocity.y]]))
+
+        # transform next_target_point to carla location object
+        next_location = carla.Location(x=next_target_point[0, 0, 1].item(), y=next_target_point[0, 0, 2].item(), z=location.z)
+
+        # # transform to ego frame
+        # delta_x = next_location.x - location.x
+        # delta_y = next_location.y - location.y
+
+        next_target_point = self.observation_manager.bev_info.global_to_egocentric(next_target_point, [location.x, location.y, np.deg2rad(transform.rotation.yaw)])
+        # yaw = np.deg2rad(transform.rotation.yaw)
+        # next_x_ego = delta_x * np.cos(yaw) + delta_y * np.sin(yaw)
+        # next_y_ego = -delta_x * np.sin(yaw) + delta_y * np.cos(yaw)
+        next_target_point = self.observation_manager.bev_info.carla_to_MAI_coordinates(data=next_target_point, is_map=False)
+        # next_target_point_ego = np.array([next_x_ego, next_y_ego, 0])
+
+        # TODO: Get MAI action space
+        longitudinal_accel = (next_target_point[0, 0, 3] - np.hypot(velocity.x, velocity.y)).item()
+        # longitudinal_accel = np.hypot(accel_vector[0], accel_vector[1])
+
+        next_wp = self.world.get_map().get_waypoint(next_location, project_to_road=True)
+        curr_wp = self.world.get_map().get_waypoint(location, project_to_road=True)
+
+        # lane_center = curr_wp.transform.location
+        # right_vec = curr_wp.transform.get_right_vector()
+        # delta = next_location - location
+        # lateral_shift = delta.x * right_vec.x + delta.y * right_vec.y
+        
+        left_wp = next_wp.get_left_lane() if next_wp.get_left_lane() is not None else None
+        right_wp = next_wp.get_right_lane() if next_wp.get_right_lane() is not None else None
+        
+        lateral_shift = next_wp.transform.location.y - next_location.y
+
+        if next_target_point[0,0,2] < -curr_wp.lane_width / 2 and left_wp is not None:
+            maneuver = -1  # left
+        elif next_target_point[0,0,2] > curr_wp.lane_width / 2 and right_wp is not None:
+            maneuver = 1   # right
+        else:
+            maneuver = 0  # straight 
+
+        act = np.array([[maneuver, longitudinal_accel, lateral_shift],
+                       [maneuver, longitudinal_accel, lateral_shift],
+                       [maneuver, longitudinal_accel, lateral_shift]], dtype=np.float32)
+        if False:
+            next_loc = np.array([next_target_point[0,0,1], next_target_point[0,0,2], next_target_point[0,0,3]], dtype=np.float32)
+            return act, next_loc
+        else:
+            return act, None
 
     def close(self):
         """
