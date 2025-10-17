@@ -46,6 +46,12 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
 - CARLA 0.9.15 (Download from [here](https://github.com/carla-simulator/carla/releases/tag/0.9.15/))
 - See `requirements.txt` for Python dependencies.
 
+After cloning the repo, run:
+```bash
+pip install pre-commit
+pre-commit install
+```
+
 ### Installation
 
 1. Download and install [CARLA 0.9.15](https://github.com/carla-simulator/carla/releases/tag/0.9.15/). Set up the CARLA_ROOT variable to point to your CARLA directory, and add it to the PYTHONPATH:
@@ -78,7 +84,7 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
 
 To run the project, follow these steps:
 
-1. **Start the CARLA Simulator**  
+1. **Start the CARLA Simulator**
     Open a terminal and run:
     ```bash
     $CARLA_ROOT/CarlaUE4.sh -RenderOffScreen -quality-level=Low -prefernvidia
@@ -86,7 +92,7 @@ To run the project, follow these steps:
     - `-RenderOffScreen`: Runs CARLA without rendering to a display (useful for headless servers).
     - `-quality-level=Low`: Sets the graphics quality to low for better performance.
 
-2. **Train or Evaluate the RL Agent**  
+2. **Train or Evaluate the RL Agent**
     In a separate terminal, use the following commands:
     - To train a model:
       ```bash
@@ -97,7 +103,7 @@ To run the project, follow these steps:
       python eval.py
       ```
 
-3. **Configuration**  
+3. **Configuration**
     Adjust environment and training settings in `envs/configs/config.yaml` as needed.
 
 ## Features
@@ -117,7 +123,7 @@ To run the project, follow these steps:
 
 ## Results
 
-- While creating the 
+- While creating the
 
 ## TODOs
 
