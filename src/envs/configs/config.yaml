@@ -3,7 +3,7 @@
 N_VEHICLES: 1
 SCENE_DURATION: 30  # seconds
 SLOWDOWN_PERCENTAGE: 10
-EGO_AUTOPILOT: False
+EGO_AUTOPILOT: True
 FOLLOW_POINT_DIST: 8  # meters
 REQ_TIME: 1  # seconds
 FREQUENCY: 0.1  # simulation tick time
@@ -18,5 +18,5 @@ LOAD_MODEL: False
 LOAD_MODEL_PATH: "saved_rl_models/1.1/model_55000.zip"
 display_width: 1080
 display_height: 720
-PREPROCESS_OBSERVATION: True
+PREPROCESS_OBSERVATION: False
 SAVE_PATH: "./saved_rl_models/"

@@ -11,6 +11,8 @@ from stable_baselines3.ppo import MlpPolicy
 
 from imitation.algorithms import bc
 from imitation.data import rollout
+from stable_baselines3.common.callbacks import EvalCallback
+from src.envs.callbacks import LoggerCallback
 from imitation.data.wrappers import RolloutInfoWrapper
 from imitation.policies.serialize import load_policy
 from imitation.util.util import make_vec_env
@@ -28,6 +30,10 @@ SAVE_PATH = config["SAVE_PATH"]
 rng = np.random.default_rng(0)
 
 env = DummyVecEnv([lambda: CarlaGymEnv(render_enabled=RENDER_CAMERA)])
+env = VecNormalize(env, norm_obs=True, norm_reward=True)
+
+evaluation_env = DummyVecEnv([lambda: CarlaGymEnv(render_enabled=RENDER_CAMERA)])
+evaluation_env = VecNormalize(evaluation_env, norm_obs=True, norm_reward=False, training=False)
 
 # make_vec_env(
 #     "seals:seals/CartPole-v0",
@@ -37,23 +43,50 @@ env = DummyVecEnv([lambda: CarlaGymEnv(render_enabled=RENDER_CAMERA)])
 
 # print(env.observation_space.contains())
 # print(env.action_space.contains())
-print(env.action_space)
-print(env.observation_space)
+# print(env.action_space)
+# print(env.observation_space)
+
+checkpoint_callback = EvalCallback(
+    eval_env=evaluation_env,
+    n_eval_episodes=5,
+    eval_freq=1000,
+    best_model_save_path=SAVE_PATH,
+    log_path=None, # specify path to save results
+    verbose=1,
+)
+logging_callback = LoggerCallback(
+    save_freq=1000,
+    verbose=1,
+)
 
 def train_expert():
     # note: use `download_expert` instead to download a pretrained, competent expert
     print("Training a expert.")
-    expert = PPO(
-        policy="MultiInputPolicy",
-        env=env,
-        seed=0,
-        # batch_size=64,
-        ent_coef=0.0,
-        learning_rate=0.0003,
-        # n_epochs=10,
-        n_steps=64,
-    )
-    expert.learn(1_000)  # Note: change this to 100_000 to train a decent expert.
+    # expert = PPO(
+    #     policy="MultiInputPolicy",
+    #     env=env,
+    #     seed=0,
+    #     # batch_size=64,
+    #     ent_coef=0.0,
+    #     learning_rate=0.0003,
+    #     # n_epochs=10,
+    #     n_steps=64,
+    # )
+
+    expert = A2C(
+        "MultiInputPolicy",
+        env,
+        n_steps=20,
+        learning_rate=0.0007,
+        use_sde=True,
+        ent_coef=0.4,
+        use_rms_prop=True, 
+        verbose=1, 
+        tensorboard_log="./tensorboard/", 
+        squash_output=True,
+        )
+    
+    expert.learn(10, callback=[logging_callback, checkpoint_callback])  # Note: change this to 100_000 to train a decent expert.
     return expert
 
 
@@ -70,6 +103,7 @@ def train_expert():
 
 def sample_expert_transitions():
     expert = train_expert()  # uncomment to train your own expert
+    expert.save(SAVE_PATH + "/a2c_carla_expert")  # save the trained expert
     # expert = download_expert()
 
     print("Sampling expert transitions.")
@@ -78,6 +112,7 @@ def sample_expert_transitions():
         env,
         rollout.make_sample_until(min_timesteps=None, min_episodes=50),
         rng=rng,
+        unwrap=False,
     )
     return rollout.flatten_trajectories(rollouts)
 
@@ -96,7 +131,7 @@ bc_trainer = bc.BC(
 #     env_make_kwargs={"render_mode": "human"},  # for rendering
 # )
 
-evaluation_env = DummyVecEnv([lambda: CarlaGymEnv(render_enabled=RENDER_CAMERA)])
+
 
 print("Evaluating the untrained policy.")
 reward, _ = evaluate_policy(
@@ -118,3 +153,6 @@ reward, _ = evaluate_policy(
     render=True,  # comment out to speed up
 )
 print(f"Reward after training: {reward}")
+
+# Save BC policy
+bc_trainer.policy.save(SAVE_PATH + "/bc_carla_policy")
