@@ -65,6 +65,7 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
     cd <project folder>
     poetry config --local virtualenvs.in-project true
     poetry install
+    pip install carla==0.9.15
     ```
     Alternatively: create your virtual env manually and install dependencies using pip:
     ```bash
