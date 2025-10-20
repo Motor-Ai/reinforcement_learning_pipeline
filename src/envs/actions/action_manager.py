@@ -1,27 +1,46 @@
+"""Defining the action space and interfacing the agent action with 
+the Motion Planning layer, translating waypoints into a full trajectory.
+TODO: currently using placeholder python code from MP that is obsolete.
+    Replace with the C++ implementation, wrapped as a python module.
+    Once MP module is available, rewrite code for efficiency and readability.
+"""
+from dataclasses import dataclass
 import numpy as np
 from gymnasium import spaces
-
-from src.envs.actions.act_integration import rss_utils_poly_calc
-import src.envs.actions.act_integration.spline as sp
-
 from numpy.typing import NDArray
+from carla import Location, Vector3D
+from src.envs.actions.act_integration import rss_utils_poly_calc
+from src.envs.actions.act_integration.spline import calc_bspline_course_2
+
+
+@dataclass
+class EgoState:
+    """Information about the state of the vehicle, needed for generating a trajectory.
+    All attributes are in the global frame."""
+    location: Location
+    yaw: float
+    velocity: Vector3D
 
 
 class ActionManager:
-    """Defines the action space and handles action creation and preprocessing."""
-
-    def __init__(self, action_fields: list[str], n_samples: int) -> None :
-        """
-        action_fields: list of actions to include.
-        """
-        self.action_fields = action_fields
+    """Defines the action space and translates the neural-net action into an
+    action CARLA can perform."""
+    def __init__(self, n_samples: int) -> None :
         self.n_samples = n_samples
+        #TODO: action space should be Multidiscrete rather than Box
+        # Define the action space: action = [longitudinal acceleration, lateral_offset]
+        #TODO: these are placeholder values, rewrite with real limits
+        max_acc, min_acc = 3.0, -3.0  # m/s^2
+        max_lat_offset, min_lat_offset = 3.0, -3.0
         self.action_space = spaces.Box(
-            low=np.repeat(np.array([-1, -1, -1]), repeats=n_samples, axis=0),
-            high=np.repeat(np.array([-1, -1, -1]), repeats=n_samples, axis=0),
-            dtype=np.float32)
+            low=np.repeat(np.array([min_acc, min_lat_offset]), repeats=n_samples, axis=0),
+            high=np.repeat(np.array([max_acc, max_lat_offset]), repeats=n_samples, axis=0),
+            dtype=np.float32
+        )
+        self.plan_time_range = [1,10,0.5] # [time_min, time_max, time_step]
+        self.plan_dt = 0.1 # seconds
 
-    def action_space_to_fp_params(self,action_space: NDArray[np.float64], ego_vel_lon, plan_time_range, plan_dt):
+    def _action_to_fp_candidates(self, action: NDArray[np.float64], ego_vel_lon):
         """
         Converts the action_space dict into a list of parameter tuples for frenet path generation.
 
@@ -36,7 +55,7 @@ class ActionManager:
             string rl_id # Current RL ID of the ego vehicle
 
         Parameters:
-        action_space (matrix): Contains info in the order 'manuever', 'linear_acceleration', 'lateral_shift'.
+        action (matrix): Contains info in the order 'manuever', 'linear_acceleration', 'lateral_shift'.
         ego_vel_lon (float): ego current longitudinal speed.
         plan_time_range (list): [min_time, max_time, time_step] for candidate plan horizons (sec).
         plan_dt (float): path time step (sec).
@@ -45,20 +64,19 @@ class ActionManager:
         list: List of tuples (target_speed, target_d, plan_time, plan_dt) for each candidate combination.
         """
         fp_params = []
-        action_space = action_space.reshape(self.n_samples,-1)
-        t_min, t_max, t_step = plan_time_range
+        action = action.reshape(self.n_samples,-1)
+        t_min, t_max, t_step = self.plan_time_range
 
         for i in range(self.n_samples):
-            lon_acc = action_space[i][1]
-            target_d = action_space[i][2]
+            lon_acc, target_d = action[i]
             # For each candidate, sweep over plan times in range
             plan_times = [round(t, 3) for t in np.arange(t_min, t_max + t_step, t_step)]
             for plan_time in plan_times:
                 target_speed = ego_vel_lon + lon_acc * plan_time
-                fp_params.append((target_speed, target_d, plan_time, plan_dt))
+                fp_params.append((target_speed, target_d, plan_time, self.plan_dt))
         return fp_params
-    
-    def compute_frenet_projection(self, ego_x, ego_y, centerline_x, centerline_y):
+
+    def _compute_frenet_projection(self, ego_location: Location, centerline_x, centerline_y): #TODO: outdated docstring
         """
         Computes the longitudinal (arc-length) and lateral (offset) distance
         of the ego agent from a lane's centerline.
@@ -69,7 +87,7 @@ class ActionManager:
         """
         # Stack centerline points
         centerline = np.column_stack((centerline_x, centerline_y))
-        ego_pos = np.array([ego_x, ego_y])
+        ego_pos = np.array([ego_location.x, ego_location.y])
 
         # Compute distances to all centerline points
         dists = np.linalg.norm(centerline - ego_pos, axis=1)
@@ -97,7 +115,7 @@ class ActionManager:
 
         return long_position, lateral_distance    # Clip index for neighbor points
 
-    def preprocess_path(self, ref_x, ref_y, factor=2.0, max_angle_change=np.pi/4.0):
+    def _preprocess_path(self, ref_x, ref_y, factor=2.0, max_angle_change=np.pi/4.0):
         """
         Preprocess path points:
         1. Insert extra points if spacing between consecutive points is too large.
@@ -161,38 +179,36 @@ class ActionManager:
 
         return new_x[keep_idx], new_y[keep_idx]
 
-    def get_path(self, action, ref_path, ego_state, plan_time_range, plan_dt):
-        plan_time_range = [1,10,0.5] # [time_min, time_max, time_step]
-        plan_dt = 0.1 # seconds
-
+    def get_path(self, action: NDArray[np.float64], ref_path: NDArray[np.float64], ego_state: EgoState):
+        """Return a full trajectory (x,y,yaw,vel,time) by feeding the action from the policy
+        to Motion Planning."""
+        #TODO: expand docstring
         ref_x, ref_y = ref_path[:,0], ref_path[:,1]
 
         # === Compute path length as sum of Euclidean distances between centerline points ===
-        path_len = sum(
-            np.linalg.norm(np.array([ref_x[i+1], ref_y[i+1]]) - np.array([ref_x[i], ref_y[i]]))
-            for i in range(len(ref_x) - 1)
-        )
+        path_len = np.sum(np.linalg.norm(np.diff(ref_path, axis=0), axis=1))
 
-        ref_x, ref_y = self.preprocess_path(ref_x, ref_y, factor=0.5)
+        ref_x, ref_y = self._preprocess_path(ref_x, ref_y, factor=0.5)
 
         # === Generate a B-spline path with 0.1m resolution ===
-        x_arr, y_arr, yaw_arr, _ = sp.calc_bspline_course_2(ref_x, ref_y, path_len, 0.1)
+        x_arr, y_arr, yaw_arr, _ = calc_bspline_course_2(ref_x, ref_y, path_len, 0.1)
 
-        ego_vel_lon, ego_vel_lat = ego_state[-2], ego_state[-1]
+        ego_vel_lon, ego_vel_lat = ego_state.velocity.x , ego_state.velocity.y
 
-        long_position, lateral_distance = self.compute_frenet_projection(ego_state[0], ego_state[1], x_arr, y_arr)
-    
-        fp_params = self.action_space_to_fp_params(action, ego_vel_lon, plan_time_range, plan_dt)
+        long_position, lateral_distance = self._compute_frenet_projection(ego_state.location, x_arr, y_arr)
+
+        fp_params = self._action_to_fp_candidates(action, ego_vel_lon)
         # For each candidate, generate frenet path and pick the first valid (for demo, can expand to all candidates)
+        #TODO: should probably not use multiple candidates, at least not at the level of policy output (problem with imitation learning)
         for fp_param in fp_params:
             # Set up params for frenet path generation
             lon_params = [long_position, ego_vel_lon]  # Start position, velocity
             lat_params = [lateral_distance, ego_vel_lat, 0.0]
-            target_speed, target_d, plan_time, plan_dt = fp_param
+            target_speed, target_d, plan_time, dt = fp_param
 
             # Overwrite target lateral offset and speed from ActionSpace
             lat_params[0] = target_d
-            time_params = [plan_time, plan_dt]
+            time_params = [plan_time, dt]
 
             _, f_path = rss_utils_poly_calc.frenet_path_gen_for_decision_targets(
                 lon_params, lat_params, time_params, target_speed,

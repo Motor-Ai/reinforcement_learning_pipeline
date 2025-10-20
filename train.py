@@ -2,11 +2,11 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-from src.envs.callbacks import LoggerCallback
 from stable_baselines3 import A2C
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.monitor import Monitor
+from src.envs.callbacks import LoggerCallback
 
 
 @hydra.main(version_base="1.3.2", config_path="config", config_name="train")

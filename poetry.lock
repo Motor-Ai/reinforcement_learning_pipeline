@@ -40,7 +40,7 @@ python-versions = "*"
 
 [[package]]
 name = "certifi"
-version = "2025.8.3"
+version = "2025.10.5"
 description = "Python package for providing Mozilla's CA Bundle."
 category = "main"
 optional = false
@@ -126,15 +126,15 @@ python-versions = "*"
 
 [[package]]
 name = "filelock"
-version = "3.19.1"
+version = "3.20.0"
 description = "A platform independent file lock."
 category = "main"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 
 [[package]]
 name = "fonttools"
-version = "4.59.1"
+version = "4.60.1"
 description = "Tools to manipulate font files"
 category = "main"
 optional = false
@@ -155,7 +155,7 @@ all = ["lxml (>=4.0)", "brotli (>=1.0.1)", "brotlicffi (>=0.8.0)", "zopfli (>=0.
 
 [[package]]
 name = "fsspec"
-version = "2025.7.0"
+version = "2025.9.0"
 description = "File-system specification"
 category = "main"
 optional = false
@@ -218,14 +218,17 @@ six = "*"
 
 [[package]]
 name = "grpcio"
-version = "1.74.0"
+version = "1.75.1"
 description = "HTTP/2-based RPC framework"
 category = "main"
 optional = false
 python-versions = ">=3.9"
 
+[package.dependencies]
+typing-extensions = ">=4.12,<5.0"
+
 [package.extras]
-protobuf = ["grpcio-tools (>=1.74.0)"]
+protobuf = ["grpcio-tools (>=1.75.1)"]
 
 [[package]]
 name = "gym-notices"
@@ -237,7 +240,7 @@ python-versions = "*"
 
 [[package]]
 name = "gymnasium"
-version = "1.2.0"
+version = "1.2.1"
 description = "A standard API for reinforcement learning and a diverse set of reference environments (formerly Gym)."
 category = "main"
 optional = false
@@ -257,7 +260,7 @@ mujoco = ["mujoco (>=2.1.5)", "imageio (>=2.14.1)", "packaging (>=23.0)"]
 toy-text = ["pygame (>=2.1.3)", "pygame (>=2.1.3)"]
 jax = ["jax (>=0.4.16)", "jaxlib (>=0.4.16)", "flax (>=0.5.0)", "array-api-compat (>=1.11.0)", "numpy (>=2.1)"]
 torch = ["torch (>=1.13.0)", "array-api-compat (>=1.11.0)", "numpy (>=2.1)"]
-array-api = ["array-api-compat (>=1.11.0)", "numpy (>=2.1)"]
+array-api = ["array-api-compat (>=1.11.0)", "numpy (>=2.1)", "packaging (>=23.0)"]
 other = ["moviepy (>=1.0.0)", "matplotlib (>=3.0)", "opencv-python (>=3.0)", "seaborn (>=0.13)"]
 all = ["ale_py (>=0.9)", "box2d-py (==2.3.5)", "pygame (>=2.1.3)", "swig (>=4.0.0,<5.0.0)", "pygame (>=2.1.3)", "mujoco (>=2.1.5)", "imageio (>=2.14.1)", "packaging (>=23.0)", "pygame (>=2.1.3)", "jax (>=0.4.16)", "jaxlib (>=0.4.16)", "flax (>=0.5.0)", "array-api-compat (>=1.11.0)", "numpy (>=2.1)", "torch (>=1.13.0)", "array-api-compat (>=1.11.0)", "numpy (>=2.1)", "array-api-compat (>=1.11.0)", "numpy (>=2.1)", "opencv-python (>=3.0)", "matplotlib (>=3.0)", "moviepy (>=1.0.0)"]
 testing = ["pytest (>=7.1.3)", "scipy (>=1.7.3)", "dill (>=0.3.7)", "array_api_extra (>=0.7.0)"]
@@ -426,7 +429,7 @@ cli = ["typer[all] (>=0.8.0)", "rich (>=10.11.0)"]
 
 [[package]]
 name = "markdown"
-version = "3.8.2"
+version = "3.9"
 description = "Python implementation of John Gruber's Markdown."
 category = "main"
 optional = false
@@ -438,7 +441,7 @@ docs = ["mkdocs (>=1.6)", "mkdocs-nature (>=0.6)", "mdx_gh_links (>=0.2)", "mkdo
 
 [[package]]
 name = "markupsafe"
-version = "3.0.2"
+version = "3.0.3"
 description = "Safely add untrusted strings to HTML/XML markup."
 category = "main"
 optional = false
@@ -446,7 +449,7 @@ python-versions = ">=3.9"
 
 [[package]]
 name = "matplotlib"
-version = "3.10.5"
+version = "3.10.7"
 description = "Python plotting package"
 category = "main"
 optional = false
@@ -460,7 +463,7 @@ kiwisolver = ">=1.3.1"
 numpy = ">=1.23"
 packaging = ">=20.0"
 pillow = ">=8"
-pyparsing = ">=2.3.1"
+pyparsing = ">=3"
 python-dateutil = ">=2.7"
 
 [package.extras]
@@ -696,7 +699,7 @@ python-versions = ">=3.8"
 
 [[package]]
 name = "pandas"
-version = "2.3.2"
+version = "2.3.3"
 description = "Powerful data structures for data analysis, time series, and statistics"
 category = "main"
 optional = false
@@ -763,7 +766,7 @@ xmp = ["defusedxml"]
 
 [[package]]
 name = "protobuf"
-version = "6.32.0"
+version = "6.32.1"
 description = ""
 category = "main"
 optional = false
@@ -844,8 +847,8 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "pyparsing"
-version = "3.2.3"
-description = "pyparsing module - Classes and methods to define and execute parsing grammars"
+version = "3.2.5"
+description = "pyparsing - Classes and methods to define and execute parsing grammars"
 category = "main"
 optional = false
 python-versions = ">=3.9"
@@ -874,7 +877,7 @@ python-versions = "*"
 
 [[package]]
 name = "pyyaml"
-version = "6.0.2"
+version = "6.0.3"
 description = "YAML parser and emitter for Python"
 category = "main"
 optional = false
@@ -942,7 +945,7 @@ dev = ["mypy (==1.10.0)", "typing-extensions", "types-psutil", "pycodestyle", "r
 
 [[package]]
 name = "shapely"
-version = "2.1.1"
+version = "2.1.2"
 description = "Manipulation and analysis of geometric objects"
 category = "main"
 optional = false
