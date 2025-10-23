@@ -92,19 +92,36 @@ To run the project, follow these steps:
     - `-RenderOffScreen`: Runs CARLA without rendering to a display (useful for headless servers).
     - `-quality-level=Low`: Sets the graphics quality to low for better performance.
 
-2. **Train or Evaluate the RL Agent**  
-    In a separate terminal, use the following commands:
-    - To train a model:
-      ```bash
-      python train.py
-      ```
-    - To evaluate a trained model:
-      ```bash
-      python eval.py
-      ```
+2. **Build gpudrive and the docker**  
+   Build the gpudrive library and install its python dependencies inside a virtual environment:
+    ```bash
+    make gpudrive_build
+    ```
+   Build the docker image:
+    ```bash
+    make docker_build
+    ```
 
 3. **Configuration**  
     Adjust environment and training settings in `envs/configs/config.yaml` as needed.
+
+4. **Train or Evaluate the RL Agent**
+    Run the docker:
+    ```bash
+    make docker_run
+    ```
+    Create an environment variable inside the docker pointing to the carla directory:
+    ```bash
+    export CARLA_ROOT=/carla
+    ```
+    Run the training script:
+    ```bash
+    uv run python3 train.py
+    ```
+    Or the evaluation of a trained model:
+    ```bash
+    uv run python3 eval.py
+    ```
 
 ## Features
 
