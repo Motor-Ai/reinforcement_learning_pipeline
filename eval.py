@@ -1,11 +1,12 @@
 import os
 
 import hydra
-from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from stable_baselines3 import A2C
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+
+from src.core.hydra import instantiate_frozen
 
 
 @hydra.main(version_base="1.3.2", config_path="config", config_name="eval")
@@ -15,7 +16,7 @@ def eval(config: DictConfig):
     # TODO: right now every new model is saved into the same dir, erasing the previous run. Should
     #  make a new dir for every run and make eval load the latest dir by default.
 
-    eval_env = DummyVecEnv([lambda: instantiate(config.env)])
+    eval_env = DummyVecEnv([lambda: instantiate_frozen(config.env)])
     eval_env = VecNormalize.load(vec_norm_path, eval_env)
     eval_env.training = False
     eval_env.norm_reward = False

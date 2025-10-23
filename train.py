@@ -1,11 +1,12 @@
 import hydra
-from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from stable_baselines3 import A2C
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.monitor import Monitor
+
+from src.core.hydra import instantiate_frozen
 from src.envs.callbacks import LoggerCallback
 
 
@@ -13,8 +14,8 @@ from src.envs.callbacks import LoggerCallback
 def train(config: DictConfig) -> None:
 
     # Create vectorized environment
-    env = DummyVecEnv([lambda: instantiate(config.env)])
-    eval_env = DummyVecEnv([lambda: Monitor(instantiate(config.env))])
+    env = DummyVecEnv([lambda: instantiate_frozen(config.env)])
+    eval_env = DummyVecEnv([lambda: Monitor(instantiate_frozen(config.env))])
 
     # Apply VecNormalize (normalizes both observations and rewards)
     env = VecNormalize(env, norm_obs=True, norm_reward=True)
