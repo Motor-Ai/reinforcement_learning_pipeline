@@ -4,7 +4,6 @@ Refer to the jupyter notebooks for more detailed examples of how to use the algo
 """
 import hydra
 import numpy as np
-from hydra.utils import instantiate
 from omegaconf import DictConfig
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
@@ -14,6 +13,8 @@ from imitation.data import rollout
 from imitation.policies.serialize import load_policy
 
 from stable_baselines3.common.vec_env import DummyVecEnv
+
+from src.core.hydra import instantiate_frozen
 
 
 def train_expert(env):
@@ -63,7 +64,7 @@ def train_imitation(config: DictConfig):
 
     rng = np.random.default_rng(0)
 
-    env = DummyVecEnv([lambda: instantiate(config.env)])
+    env = DummyVecEnv([lambda: instantiate_frozen(config.env)])
 
     transitions = sample_expert_transitions(env, rng)
     bc_trainer = bc.BC(
@@ -73,7 +74,7 @@ def train_imitation(config: DictConfig):
         rng=rng,
     )
 
-    evaluation_env = DummyVecEnv([lambda: instantiate(config.env)])
+    evaluation_env = DummyVecEnv([lambda: instantiate_frozen(config.env)])
 
     print("Evaluating the untrained policy.")
     reward, _ = evaluate_policy(

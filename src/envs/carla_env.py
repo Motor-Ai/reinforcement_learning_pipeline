@@ -8,7 +8,7 @@ import gymnasium as gym
 from gymnasium import spaces
 import os
 import sys
-from typing import Optional, Tuple, Any
+from typing import Tuple, Any
 
 # Expand the CARLA_ROOT environment variable correctly:
 carla_root = os.environ.get("CARLA_ROOT")
@@ -39,54 +39,17 @@ class CarlaGymEnv(gym.Env):
     """
     metadata = {"render.modes": ["human"]}
     
-    def __init__(
-        self,
-        mai_action_space: bool,
-        n_vehicles: int,
-        scene_duration: int,
-        slowdown_percentage: float,
-        ego_autopilot: bool,
-        frequency: float,
-        use_custom_map: bool,
-        show_route: bool,
-        preprocess_observation: bool,
-        display_width: int,
-        display_height: int,
-        num_actions: int,
-        n_actions_per_maneuver: int,
-        render_camera: bool
-    ) -> None:
+    def __init__(self, config) -> None:
         """
         Initialize the environment.
         
         Parameters:
-            mai_action_space: whether to use the Motor.AI action space or not.
-            n_vehicles: number of vehicles in the simulation (other than the ego vehicle).
-            scene_duration: the duration of an episode in seconds.
-            slowdown_percentage: the percentage of the speed limit by which the vehicles are slowed down.
-            ego_autopilot: whether to set the autopilot of the ego vehicle.
-            frequency: number of frames per second.
-            use_custom_map: whether to use a custom OpenDrive map or not.
-            show_route: whether to display the global route.
-            preprocess_observation: whether to preprocess the observation.
-            display_width: the width of the screen, if render camera is enabled.
-            display_height: the height of the screen, if render camera is enabled.
-            num_actions: the number of maneuvers if mai_action_space is False, and the number of actions otherwise.
-            n_actions_per_maneuver: the number of actions per maneuver.
-            render_camera: If True, the camera sensor is spawned and its output rendered via Pygame.
+            config: CARLA configuration.
         """
         super(CarlaGymEnv, self).__init__()
 
         # Simulation parameters
-        self.render_camera = render_camera
-        self.mai_action_space = mai_action_space
-        self.n_vehicles = n_vehicles
-        self.scene_duration = scene_duration
-        self.slowdown_percentage = slowdown_percentage
-        self.ego_autopilot = ego_autopilot
-        self.frequency = frequency
-        self.use_custom_map = use_custom_map
-        self.show_route = show_route
+        self.config = config
         self.sim_time = 0.0
         self.timestep = 0
         self.cumulative_step = 0
@@ -95,9 +58,9 @@ class CarlaGymEnv(gym.Env):
         self.distance_to_goal: float = 0.0
         self.prev_distance_to_goal: float
         self.collision_detected = False
-        self.episode_length = int(self.scene_duration / self.frequency)
+        self.episode_length = int(self.config.scene_duration / self.config.frequency)
         self.lane_invasions: list[carla.LaneInvasionEvent] = []
-        self.preprocess_observation = preprocess_observation
+        self.preprocess_observation = self.config.preprocess_observation
         self.observation: dict  #TODO: change to correct type
         self.global_route: np.ndarray
         self.ego_vehicle: carla.Vehicle
@@ -138,18 +101,16 @@ class CarlaGymEnv(gym.Env):
         )
 
         # Pygame setup for camera display (only if rendering enabled)
-        if self.render_camera:
+        if self.config.render_camera:
             self.matplotlib_renderer = MatplotlibAnimationRenderer()
             pygame.init()  # pylint: disable=no-member
-            self.screen = pygame.display.set_mode((display_width, display_height))
+            self.screen = pygame.display.set_mode((self.config.display_width, self.config.display_height))
             pygame.display.set_caption("Carla Gym Environment")
-        self.display_width = display_width
-        self.display_height = display_height
 
         # Connect to CARLA server and get world
         self.client = carla.Client('localhost', 2000)
         self.client.set_timeout(10.0)
-        if self.use_custom_map:
+        if self.config.use_custom_map:
             # Load the custom OpenDRIVE (.xodr) map
             with open(self.map_path, 'r') as f:
                 opendrive_data = f.read()
@@ -175,12 +136,12 @@ class CarlaGymEnv(gym.Env):
         # Set synchronous mode and fixed delta time
         settings = self.world.get_settings()
         settings.synchronous_mode = True
-        settings.fixed_delta_seconds = self.frequency
+        settings.fixed_delta_seconds = self.config.frequency
         self.world.apply_settings(settings)
 
         # Traffic manager
         self.tm = self.client.get_trafficmanager(8000)
-        self.tm.global_percentage_speed_difference(self.slowdown_percentage)
+        self.tm.global_percentage_speed_difference(self.config.slowdown_percentage)
 
         # Initialize BEV observer (your original code uses FUTURE_LEN=1)
         self.bev_info = Vector_BEV_observer(FUTURE_LEN=1) #TODO: this was moved from observation_manager and only used here for constants. replace it
@@ -191,12 +152,12 @@ class CarlaGymEnv(gym.Env):
         # Define the action space early on:
         # self.action_space = spaces.Box(low=5, high=10, shape=(2,), dtype=np.float32)
 
-        if not self.mai_action_space:
-            self.num_maneuvers = num_actions  # Possible actions: 0, 1, 2, 3, 4
-            self.n_actions_per_maneuver = n_actions_per_maneuver
+        if not self.config.mai_action_space:
+            self.num_maneuvers = self.config.num_actions  # Possible actions: 0, 1, 2, 3, 4
+            self.n_actions_per_maneuver = self.config.n_actions_per_maneuver
             self.action_space = spaces.MultiDiscrete([self.num_maneuvers, self.n_actions_per_maneuver])
         else:
-            self.action_manager = ActionManager(n_samples = num_actions)
+            self.action_manager = ActionManager(n_samples = self.config.num_actions)
             self.action_space = self.action_manager.action_space
 
         # Define the possible values for each dimension
@@ -301,7 +262,7 @@ class CarlaGymEnv(gym.Env):
             self.ego_vehicle = self.world.try_spawn_actor(vehicle_bp, random.choice(self.spawn_points))
         assert isinstance(self.ego_vehicle, carla.Vehicle), "Ego vehicle is not a Vehicle."
         self.actor_list.append(self.ego_vehicle)
-        if not self.ego_autopilot:
+        if not self.config.ego_autopilot:
             # Initialize the PID controller for the ego vehicle
             args_lateral = {'K_P': 1.0, 'K_I': 0.05, 'K_D': 0.2, 'dt': 1.0 / 20.0}
             args_longitudinal = {'K_P': 1.0, 'K_I': 0.05, 'K_D': 0.2, 'dt': 1.0 / 20.0}
@@ -309,13 +270,13 @@ class CarlaGymEnv(gym.Env):
                                                        args_lateral=args_lateral,
                                                        args_longitudinal=args_longitudinal)
         else:
-            self.ego_vehicle.set_autopilot(self.ego_autopilot, self.tm.get_port())
+            self.ego_vehicle.set_autopilot(self.config.ego_autopilot, self.tm.get_port())
 
         # Attach Camera to Ego Vehicle if rendering is enabled
-        if self.render_camera:
+        if self.config.render_camera:
             camera_bp = self.blueprint_library.find('sensor.camera.rgb')
-            camera_bp.set_attribute('image_size_x', str(self.display_width))
-            camera_bp.set_attribute('image_size_y', str(self.display_height))
+            camera_bp.set_attribute('image_size_x', str(self.config.display_width))
+            camera_bp.set_attribute('image_size_y', str(self.config.display_height))
             camera_bp.set_attribute('fov', '90')
             camera_transform = carla.Transform(carla.Location(x=0, z=35.0), carla.Rotation(pitch=-90))
             self.camera = self.world.spawn_actor(camera_bp, camera_transform, attach_to=self.ego_vehicle)
@@ -340,13 +301,13 @@ class CarlaGymEnv(gym.Env):
 
         # Spawn other vehicles on autopilot
         self.vehicles = []
-        for _ in range(self.n_vehicles):
+        for _ in range(self.config.n_vehicles):
             vehicle_bp = random.choice(self.blueprint_library.filter('vehicle.*'))
             spawn_point = random.choice(self.spawn_points)
             vehicle = self.world.try_spawn_actor(vehicle_bp, spawn_point)
             if vehicle is not None:
                 vehicle.set_autopilot(True, self.tm.get_port())
-                self.tm.vehicle_percentage_speed_difference(vehicle, self.slowdown_percentage)
+                self.tm.vehicle_percentage_speed_difference(vehicle, self.config.slowdown_percentage)
                 self.vehicles.append(vehicle)
                 self.actor_list.append(vehicle)
 
@@ -355,14 +316,14 @@ class CarlaGymEnv(gym.Env):
 
         # Compute the global route only once.
         self._generate_global_route()
-        if self.show_route:
+        if self.config.show_route:
             for point in self.global_route:
                 point = carla.Location(x=float(point[0]), y=float(point[1]))
                 self.world.debug.draw_point(
                     point,
                     size=0.1,
                     color=carla.Color(255, 255, 0),
-                    life_time=self.scene_duration
+                    life_time=self.config.scene_duration
                 )
         
         self.observation = self.observation_manager.get_obs(self.world)
@@ -448,8 +409,8 @@ class CarlaGymEnv(gym.Env):
         current_location = ego_transform.location
         ego_position_global = np.array([current_location.x, current_location.y])
         ego_yaw_global = np.deg2rad(ego_transform.rotation.yaw)
-        if not self.ego_autopilot:
-            if not self.mai_action_space:
+        if not self.config.ego_autopilot:
+            if not self.config.mai_action_space:
                 action_point = action.copy()
                 if len(global_route_ego_frame_no_padding):
                     if action[0] in {0, 1, 2} and 1 <= action[1] <= 4:
@@ -487,8 +448,9 @@ class CarlaGymEnv(gym.Env):
                 if len(global_route_ego_frame_no_padding) > 1:
                     # Action from Policy converted to Frenet to determine the target point
                     # ref_path = np.unique(global_route_ego_frame_no_padding[:,:2], axis = -1)
-                    path_x, path_y, path_yaw, path_vel, path_time = self.action_manager.get_path(action, global_route_ego_frame_no_padding[:,:2], 
-                                                                                            ego_state)
+                    path_x, path_y, path_yaw, path_vel, path_time = self.action_manager.get_path(
+                        action, global_route_ego_frame_no_padding[:,:2], ego_state
+                    )
                     TARGET_PT_IDX = 2 # NOTE: PARAM to set which point to use from the planned path
                     action_point = np.array([path_x[TARGET_PT_IDX], path_y[TARGET_PT_IDX]]) # Take the second point in the planned path
                 else:
@@ -502,7 +464,7 @@ class CarlaGymEnv(gym.Env):
                 target_location,
                 size=0.1,
                 color=carla.Color(255, 0, 0),
-                life_time=self.frequency * 2
+                life_time=self.config.frequency * 2
             )
 
             # Compute the target speed based on the distance (and req_time)
@@ -524,7 +486,7 @@ class CarlaGymEnv(gym.Env):
         self.world.tick()
         self.timestep += 1
         self.cumulative_step += 1
-        self.sim_time = self.timestep * self.frequency
+        self.sim_time = self.timestep * self.config.frequency
         info["sim_time"] = self.sim_time
 
         self.observation = self.observation_manager.get_obs(self.world, global_route_ego_frame)
@@ -541,7 +503,7 @@ class CarlaGymEnv(gym.Env):
         goal_reached = self.distance_to_goal < self.goal_threshold
         info["goal_reached"] = goal_reached
         terminated = goal_reached # End episode if goal is reached
-        truncated = self.timestep >= self.scene_duration / self.frequency # End episode if time is up
+        truncated = self.timestep >= self.config.scene_duration / self.config.frequency # End episode if time is up
 
         # End episode on collision
         if self.collision_detected:
@@ -656,5 +618,5 @@ class CarlaGymEnv(gym.Env):
         Clean up all actors and close the environment.
         """
         self._cleanup()
-        if self.render_camera:
+        if self.config.render_camera:
             pygame.quit() # pylint: disable=no-member
