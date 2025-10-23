@@ -71,7 +71,6 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
     make docker_build
     ```
 
-
 3. Link the CARLA 'agents' lib by running:
 
     ```bash
