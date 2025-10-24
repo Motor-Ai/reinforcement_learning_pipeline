@@ -85,6 +85,7 @@ lanelet2 = "^1.2.2"
 scipy = "1.15.3"
 
 [tool.poetry.dev-dependencies]
+pytest = "^8.4.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
