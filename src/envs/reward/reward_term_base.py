@@ -30,7 +30,7 @@ class RewardTerm(abc.ABC):
 
     def __init__(self, env: gym.Env, weight: float):
         # TODO(FU): I would also add config as an argument,
-        # but we'd have to agree on how the config works.
+        #   but we'd have to agree on how the config works.
         super().__init__()
 
         # TODO(FU): Remove this cast once we implement an env general class.
@@ -73,7 +73,7 @@ class RewardTerm(abc.ABC):
         """
         Reset the reward term.
         """
-        pass # Only define in case of statefull rewards.
+        pass # Only define in case of stateful rewards.
 
     @abc.abstractmethod
     def measure(self) -> float:

@@ -16,3 +16,23 @@ num_actions: 3
 n_vehicles: 1
 mai_action_space: True
 n_actions_per_maneuver: 5
+
+reward_terms:
+  TimePenalty:
+    weight: 1.0
+  GoalImprovementReward:
+    weight: 1.0
+  GoalReachedReward:
+    weight: 50.0
+  CollisionPenalty:
+    weight: 25.0
+  IllegalLaneInvasions:
+    weight: 25.0
+  RedLightViolation:
+    weight: 1.0
+  EgoIsTooFast:
+    weight: 1.0
+  TooSlowPenalty:
+    weight: 1.0
+  DrivingOnSidewalks:
+    weight: 25.0

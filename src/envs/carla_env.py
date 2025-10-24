@@ -66,39 +66,7 @@ class CarlaGymEnv(gym.Env):
         self.ego_vehicle: carla.Vehicle
         self.spawn_points: list[carla.Transform] = []
 
-        self.reward_manager = RewardManager(
-            env=self,
-            # TODO(FU): This is ugly asf and should be put into a config, I know.
-            reward_terms={
-                "TimePenalty": {
-                    "weight": 1.0
-                },
-                "GoalImprovementReward": {
-                    "weight": 1.0
-                },
-                "GoalReachedReward": {
-                    "weight": 50.0
-                },
-                "CollisionPenalty": {
-                    "weight": 25.0 
-                },
-                "IllegalLaneInvasions": {
-                    "weight": 25.0
-                },
-                "RedLightViolation": {
-                    "weight": 1.0
-                },
-                "EgoIsTooFast": {
-                    "weight": 1.0 
-                },
-                "TooSlowPenalty": {
-                    "weight": 1.0
-                },
-                "DrivingOnSidewalks": {
-                    "weight": 25.0
-                },
-            }
-        )
+        self.reward_manager = RewardManager(env=self, reward_terms=config.reward_terms)
 
         # Pygame setup for camera display (only if rendering enabled)
         if self.config.render_camera:
