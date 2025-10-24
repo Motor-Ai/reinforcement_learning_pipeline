@@ -1,0 +1,34 @@
+name: CI                      # How the workflow shows up in the GitHub UI
+
+on:                          # When should this workflow run?
+  pull_request:              # Only run for PRs (your request)
+    branches: [ main ]       # …and only when the PR targets the main branch
+  push:
+    branches: [ main ]       # Also run when code is pushed to main (e.g., after PR is merged)
+jobs:                        # A workflow can have multiple jobs; here we use one
+  test:                      # The job name (arbitrary)
+    runs-on: ubuntu-latest   # GitHub-hosted runner VM image
+
+    steps:                   # Each job is a sequence of steps run in order
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        # Pulls your repo code into the runner so later steps can access it
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+        # Installs Python 3.10 on the runner and puts it on PATH
+
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry install
+        # Installs Poetry, then reads pyproject.toml/poetry.lock and installs deps
+        # Dev deps (like pytest) are included by default in `poetry install`
+
+      - name: Run tests
+        run: |
+          poetry run pytest -v --maxfail=1 --disable-warnings
+        # Runs your test suite. `poetry run` ensures it uses Poetry’s venv.
+
