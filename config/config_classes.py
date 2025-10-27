@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 @dataclass
 class TrainConfig:
-    env: str  # used to instantiate a gym.Env environment
+    env: dict  # used to instantiate a gym.Env environment
     save_path: str
     max_n_steps: int
     eval_frequency: int
@@ -16,5 +16,5 @@ class TrainConfig:
 
 @dataclass
 class EvalConfig:
-    env: str  # used to instantiate a gym.Env environment
+    env: dict  # used to instantiate a gym.Env environment
     save_path:str
