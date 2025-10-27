@@ -79,3 +79,6 @@ cs = ConfigStore.instance()
 # Register the main config as "config" (can be any name)
 cs.store(name="train_config", node=TrainConfig)
 cs.store(name="eval_config", node=EvalConfig)
+# Use different envs by running:
+# python train.py +env=carla
+cs.store(group="env", name="carla", node=CarlaEnvConfig)
