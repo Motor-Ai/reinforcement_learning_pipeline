@@ -6,7 +6,6 @@ import numpy as np
 from numpy.typing import NDArray
 import gymnasium as gym
 from gymnasium import spaces
-import os
 from typing import Tuple, Any
 
 from src.envs.reward.reward_manager import RewardManager
@@ -21,6 +20,7 @@ from src.envs.observation.vector_BEV_observer import Vector_BEV_observer
 from src.envs.carla_env_render import MatplotlibAnimationRenderer
 from src.envs.observation.observation_manager import ObservationManager
 from src.envs.actions.action_manager import ActionManager, EgoState
+from config.env.env_config_classes import CarlaEnvConfig
 # pyright: reportAttributeAccessIssue=none
 
 
@@ -32,7 +32,7 @@ class CarlaGymEnv(gym.Env):
     """
     metadata = {"render.modes": ["human"]}
     
-    def __init__(self, config) -> None:
+    def __init__(self, config: CarlaEnvConfig) -> None:
         """
         Initialize the environment.
         

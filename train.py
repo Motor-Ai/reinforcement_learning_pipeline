@@ -1,5 +1,4 @@
 import hydra
-from omegaconf import DictConfig
 
 from stable_baselines3 import A2C
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
@@ -8,10 +7,11 @@ from stable_baselines3.common.monitor import Monitor
 
 from src.core.hydra import instantiate_frozen
 from src.envs.callbacks import LoggerCallback
+from config.config_classes import TrainConfig
 
 
 @hydra.main(version_base="1.3.2", config_path="config", config_name="train")
-def train(config: DictConfig) -> None:
+def train(config: TrainConfig) -> None:
 
     # Create vectorized environment
     env = DummyVecEnv([lambda: instantiate_frozen(config.env)])
