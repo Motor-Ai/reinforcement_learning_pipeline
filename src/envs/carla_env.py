@@ -20,7 +20,7 @@ from src.envs.observation.vector_BEV_observer import Vector_BEV_observer
 from src.envs.carla_env_render import MatplotlibAnimationRenderer
 from src.envs.observation.observation_manager import ObservationManager
 from src.envs.actions.action_manager import ActionManager, EgoState
-from config.env.env_config_classes import CarlaEnvConfig
+from config.env_config_classes import CarlaEnvConfig
 # pyright: reportAttributeAccessIssue=none
 
 

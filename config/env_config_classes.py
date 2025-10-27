@@ -10,7 +10,7 @@ class CarlaEnvConfig:
         _target_ (str): Target class to instantiate.
         render_camera (bool): If True, spawns a camera sensor and renders its output via Pygame.
         scene_duration (int): Duration of an episode in seconds.
-        slowdown_percentage (float): Percentage reduction of the vehicles’ speed limit.
+        slowdown_percentage (float): Percentage reduction of the vehicles' speed limit.
         ego_autopilot (bool): Whether the ego vehicle uses autopilot.
         frequency (float): Simulation tick time (in seconds).
         use_custom_map (bool): Whether to load a custom OpenDrive map.
