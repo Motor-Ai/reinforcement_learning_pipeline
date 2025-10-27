@@ -97,10 +97,6 @@ To run the project, follow these steps:
     ```bash
     make docker_run
     ```
-    Create an environment variable inside the docker pointing to the carla directory:
-    ```bash
-    export CARLA_ROOT=/carla
-    ```
     Run the training script:
     ```bash
     uv run python3 train.py
