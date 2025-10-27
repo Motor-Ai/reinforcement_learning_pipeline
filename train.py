@@ -9,8 +9,18 @@ from src.core.hydra import instantiate_frozen
 from src.envs.callbacks import LoggerCallback
 from config.config_classes import TrainConfig
 
+###########################################
+# disable all hydra logging
+# TODO: remove this when we use logging
+import sys
+sys.argv.extend(['hydra.run.dir=.',
+                 'hydra.output_subdir=null', 
+                 'hydra/hydra_logging=disabled', 
+                 'hydra/job_logging=disabled'])
+###########################################
 
-@hydra.main(version_base="1.3.2", config_path="config", config_name="train")
+
+@hydra.main(version_base="1.3.2", config_path=None, config_name="train_config")
 def train(config: TrainConfig) -> None:
 
     # Create vectorized environment
