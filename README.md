@@ -2,46 +2,6 @@
 
 This repository provides a reinforcement learning (RL) pipeline for autonomous driving research using the CARLA simulator.
 
-## Project Structure
-
-```
-.
-├── eval.py
-├── main.py
-├── requirements.txt
-├── train.py
-├── config/
-│   ├── eval.yaml
-│   ├── train.yaml
-│   ├── train_imitation.yaml
-│   ├── main.yaml
-│   └── env/
-│       └── carla.yaml
-├── envs/
-│   ├── callbacks.py
-│   ├── carla_env.py
-│   ├── carla_env_render.py
-│   ├── observation/
-│   │   ├── __init__.py
-│   │   ├── tr_costs.py
-│   │   ├── vector_BEV_observer.py
-│   │   └── decision_traffic_rules/
-│   │       ├── feature_indices.py
-│   │       ├── lanelet_data_extractor.py
-│   │       ├── lanelet_traffic_rules.py
-│   │       └── README.md
-├── media/
-├── models/
-│   ├── __init__.py
-│   ├── preprocess.py
-│   └── dipp_predictor_py/
-│       ├── __init__.py
-│       ├── dipp_carla.py
-│       └── dipp_predictor_utils.py
-├── saved_rl_models/
-│   ├── log.txt
-│   └── results.txt
-```
 
 ## Getting Started
 

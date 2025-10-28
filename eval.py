@@ -6,6 +6,7 @@ from omegaconf import DictConfig
 from stable_baselines3 import A2C
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
+from src.envs.carla_env_render import MatplotlibAnimationRenderer
 from src.core.hydra import instantiate_frozen
 
 
@@ -29,6 +30,8 @@ def eval(config: DictConfig):
         obs = eval_env.reset()
         done = False
         step_count = 0
+
+        renderer = MatplotlibAnimationRenderer()
 
         step = 0
         while not done:
