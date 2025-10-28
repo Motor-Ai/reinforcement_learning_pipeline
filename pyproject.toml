@@ -1,166 +1,17 @@
-[build-system]
-requires = [
-    "setuptools>=42",
-    "scikit-build>=0.13",
-    "cmake>=3.18",
-    "ninja",
-]
-build-backend = "madrona_py_build"
-backend-path = ["src/envs/gpudrive/external/madrona/py"]
-wheel-directory = "build"
-
 [project]
-name = "reinforcement_learning_pipeline"
+name = "reinforcement-learning-pipeline"
 version = "0.1.0"
-authors = [
-    {name = "Oren Neumann", email = "oren.neumann@motor-ai.com"},
-    {name = "Theophile Champion", email = "theophile.champion@motor-ai.com"},
-]
 readme = "README.md"
-description = "A pipeline for training and evaluating reinforcement learning agents."
-requires-python = ">=3.10, <3.11"
+requires-python = ">=3.11,<3.13"
 dependencies = [
-    "numpy>=1.26.4,<2",
-    "gymnasium",
-    "pygame",
-    "pandas",
-    "python-box==7.2.0",
-    "typer",
-    "pyyaml",
-    "mediapy",
-    "wandb",
-    "torch>=2.2.1",
-    "seaborn",
-    "safetensors",
-    "python-box",
-    "tqdm",
-    "jax",
-    "huggingface_hub",
-    "cmake==4.0.0",
-    "carla==0.9.15",
-    "absl-py>=2.3.1",
-    "antlr4-python3-runtime==4.9.2",
-    "mujoco==3.3.7",
-    "astor>=0.8.1",
-    "cachetools>=6.1.0",
-    "certifi>=2025.8.3",
-    "charset-normalizer>=3.4.3",
-    "cloudpickle>=3.1.1",
-    "cycler>=0.12.1",
-    "dictor>=0.1.12",
-    "easydict>=1.13",
-    "ephem>=4.2",
-    "Farama-Notifications>=0.0.4",
-    "fonttools>=4.59.1",
-    "future>=1.0.0",
-    "gast>=0.6.0",
-    "google-pasta>=0.2.0",
-    "grpcio>=1.74.0",
-    "gymnasium>=0.29",
-    "gym-notices>=0.1.0",
-    "h5py>=3.14.0",
-    "idna>=3.10",
-    "imitation==1.0.1",
-    "importlib-metadata>=8.7.0",
-    "importlib-resources>=6.5.2",
-    "jax-jumpy>=1.0.0",
-    "joblib>=1.5.1",
-    "Keras-Applications>=1.0.8",
-    "Keras-Preprocessing>=1.1.2",
-    "kiwisolver>=1.4.9",
-    "laspy>=2.6.1",
-    "Markdown>=3.8.2",
-    "MarkupSafe>=3.0.2",
-    "matplotlib>=3.10.5",
-    "mpi4py>=4.1.0",
-    "nvidia-cublas-cu11>=11.11.3",
-    "nvidia-cuda-nvrtc-cu11>=11.8.89",
-    "nvidia-cuda-runtime-cu11>=11.8.89",
-    "nvidia-cudnn-cu11>=9.10.2",
-    "oauthlib>=3.3.1",
-    "packaging>=25.0",
-    "pandas>=2.3.1",
-    "pexpect>=4.9.0",
-    "pillow>=11.3.0",
-    "protobuf>=6.32.0",
-    "ptyprocess>=0.7.0",
-    "pyasn1>=0.6.1",
-    "pyasn1-modules>=0.4.2",
-    "pydot>=4.0.1",
-    "pygame>=2.6.1",
-    "pyparsing>=3.2.3",
-    "python-dateutil>=2.9.0",
-    "py-trees>=2.3.0",
-    "pytz>=2025.2",
-    "PyYAML>=6.0.2",
-    "requests>=2.32.5",
-    "requests-oauthlib>=2.0.0",
-    "rsa>=4.9.1",
-    "shapely>=2.1.1",
-    "Shimmy>=1.3.0",
-    "simple-watchdog-timer>=0.1.1",
-    "six>=1.17.0",
-    "smmap>=5.0.1",
-    "stable-baselines3>=2.2.1",
-    "tabulate>=0.9.0",
+    "carla==0.9.16",
+    "gpudrive",
+    "hydra-core>=1.3.2",
+    "shapely>=2.1.2", # used in act_integration
+    "stable-baselines3>=2.7.0",
     "tensorboard>=2.20.0",
-    "tensorboard-data-server>=0.7.2",
-    "tensorboard-plugin-wit>=1.8.1",
-    "termcolor>=3.1.0",
-    "transforms3d>=0.4.2",
-    "typing-extensions>=4.14.1",
-    "urllib3>=2.5.0",
-    "Werkzeug>=3.1.3",
-    "wrapt>=1.17.3",
-    "zipp>=3.23.0",
-    "lanelet2>=1.2.2",
-    "scipy==1.15.3",
-    "hydra-core==1.3.2"
 ]
 
-[dependency-groups]
-pufferlib = [
-    "pufferlib>=2.0.6,<3",
-]
-test = [
-    "pytest>=8.2.1",
-]
-vbd = [
-    "lightning",
-    "jaxlib==0.5.3",  # see https://github.com/Emerge-Lab/gpudrive/issues/464
-    "waymo-waymax @ git+https://github.com/waymo-research/waymax.git@main",
-]
-
-[tool.uv]
-default-groups = "all"
-cache-dir = "./.uv_cache"
-
-# Use the CUDA index for torch on Linux
-[[tool.uv.index]]
-name = "pytorch-cuda"
-url = "https://download.pytorch.org/whl/cu124"
-explicit = true
-
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
 
 [tool.uv.sources]
-torch = [
-    { index = "pytorch-cuda", marker = "platform_system == 'Linux'" },
-    { index = "pytorch-cpu", marker = "platform_system != 'Linux'" }
-]
-
-[tool.madrona.packages.madrona_gpudrive]
-ext-only = true
-ext-out-dir = "build"
-
-[tool.madrona.packages.gpudrive]
-path = "gpudrive"
-
-[project.packages]
-include = [
-    "baselines",
-    "baselines/*",
-]
+gpudrive = { path = "src/envs/gpudrive", editable = true }

@@ -2,77 +2,37 @@
 
 This repository provides a reinforcement learning (RL) pipeline for autonomous driving research using the CARLA and GPUDrive simulators.
 
-## Project Structure
-
-```
-.
-├── eval.py
-├── requirements.txt
-├── train.py
-├── train_imitation.py
-├── config/
-│   ├── eval.yaml
-│   ├── train.yaml
-│   ├── train_imitation.yaml
-│   └── env/
-│       └── carla.yaml
-├── src/
-│   ├── core/
-│   │   └── hydra.py
-│   ├── envs/
-│   │   ├── callbacks.py
-│   │   ├── carla_env.py
-│   │   ├── carla_env_render.py
-│   │   ├── gpudrive/
-│   │   │   └── ...
-│   │   └── observation/
-│   │       ├── __init__.py
-│   │       ├── tr_costs.py
-│   │       ├── vector_BEV_observer.py
-│   │       └── decision_traffic_rules/
-│   │           ├── feature_indices.py
-│   │           ├── lanelet_data_extractor.py
-│   │           ├── lanelet_traffic_rules.py
-│   │           └── README.md
-│   └── models/
-│       ├── __init__.py
-│       └── dipp_predictor_py/
-│           ├── __init__.py
-│           ├── dipp_carla.py
-│           └── dipp_predictor_utils.py
-└── saved_rl_models/
-    ├── log.txt
-    └── results.txt
-```
-
 ## Getting Started
 
 ### Prerequisites
 
-- Python 3.10 (and higher?)
-- CARLA 0.9.15 (Download from [here](https://github.com/carla-simulator/carla/releases/tag/0.9.15/))
-- See `requirements.txt` for Python dependencies.
+- Python 3.11 (3.12 should also work)
+- CARLA 0.9.16 (Download from [here](https://github.com/carla-simulator/carla/releases/tag/0.9.16/))
 
 ### Installation
 
-1. Download and install [CARLA 0.9.15](https://github.com/carla-simulator/carla/releases/tag/0.9.15/). Set up the CARLA_ROOT variable to point to your CARLA directory, and add it to the PYTHONPATH:
+1. Clone the repo recursively:
     ```bash
-    echo 'export CARLA_ROOT="/path/to/my/CARLA_0.9.15"' >> ~/.bashrc
-    echo 'export PYTHONPATH="${CARLA_ROOT}/PythonAPI/carla/dist/carla-0.9.14-py3.7-linux-x86_64.egg"' >> ~/.bashrc
-    source ~/.bashrc
+    git clone --recursive https://github.com/Motor-Ai/reinforcement_learning_pipeline.git
     ```
-   
-2. Using poetry: install poetry globally, then create venv and install dependencies inside the project folder:
+    you can update GPUDrive later using:
     ```bash
-    sudo apt install python3-poetry
-    cd <project folder>
-    poetry config --local virtualenvs.in-project true
-    poetry install
-    pip install carla==0.9.15
-    make gpudrive_build
+    git submodule update --init --recursive
     ```
 
-3. **Build gpudrive and the docker**  
+
+2. Install uv:
+    ```bash
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
+    then install the virtual env:
+    ```bash
+    cd ./reinforcement_learning_pipeline
+    uv sync
+    ```
+
+
+2. **Build gpudrive and the docker**  
    Build the gpudrive library and install its python dependencies inside a virtual environment:
     ```bash
     make gpudrive_build
@@ -82,16 +42,25 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
     make docker_build
     ```
 
-4. Link the CARLA 'agents' lib by running:
+### Install CARLA
+
+1. Download and install [CARLA 0.9.16](https://github.com/carla-simulator/carla/releases/tag/0.9.16/). Set up the CARLA_ROOT variable to point to your CARLA directory, and install carla on python:
+    ```bash
+    echo 'export CARLA_ROOT="/path/to/my/CARLA_0.9.16"' >> ~/.bashrc
+    source ~/.bashrc
+    uv pip install ${CARLA_ROOT}/PythonAPI/carla/dist/carla-0.9.16-cp311-cp311-manylinux_2_31_x86_64.whl
+    ```
+
+2. Link the CARLA 'agents' lib by running:
 
     ```bash
-    ln -s $CARLA_ROOT/PythonAPI/carla/agents/ .venv/lib/python3.10/site-packages/
+    ln -s $CARLA_ROOT/PythonAPI/carla/agents/ .venv/lib/python3.11/site-packages/
     ```
 
     replace `.venv` with the name of your virtual env dir.
 
 
-### Running the RL Pipeline
+### Running the RL Pipeline with CARLA
 
 To run the project, follow these steps:
 
