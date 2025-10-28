@@ -61,7 +61,18 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
     echo 'export PYTHONPATH="${CARLA_ROOT}/PythonAPI/carla/dist/carla-0.9.14-py3.7-linux-x86_64.egg"' >> ~/.bashrc
     source ~/.bashrc
     ```
-2. **Build gpudrive and the docker**  
+   
+2. Using poetry: install poetry globally, then create venv and install dependencies inside the project folder:
+    ```bash
+    sudo apt install python3-poetry
+    cd <project folder>
+    poetry config --local virtualenvs.in-project true
+    poetry install
+    pip install carla==0.9.15
+    make gpudrive_build
+    ```
+
+3. **Build gpudrive and the docker**  
    Build the gpudrive library and install its python dependencies inside a virtual environment:
     ```bash
     make gpudrive_build
@@ -71,7 +82,7 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
     make docker_build
     ```
 
-3. Link the CARLA 'agents' lib by running:
+4. Link the CARLA 'agents' lib by running:
 
     ```bash
     ln -s $CARLA_ROOT/PythonAPI/carla/agents/ .venv/lib/python3.10/site-packages/
