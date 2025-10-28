@@ -1,3 +1,4 @@
 [submodule "src/envs/gpudrive"]
 	path = src/envs/gpudrive
-	url = git@github.com:Motor-Ai/mai-rl-sim.git
+	url = git@github.com:Motor-Ai/mai-gpu-drive.git
+

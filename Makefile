@@ -1,9 +1,14 @@
+WORKSPACE_DIR := /workspace
+GPUDRIVE_DIR := $(WORKSPACE_DIR)/src/envs/gpudrive
+
 # Function that builds the gpudrive code
 gpudrive_build:
-	find ./src/envs/gpudrive/external/* -type d -exec git config --global --add safe.directory {} \;
-	uv lock
-	uv sync --frozen
-	uv run python ./build_gpudrive.py
+	$(MAKE) -C ${GPUDRIVE_DIR} gpudrive_build WORKSPACE_DIR=${GPUDRIVE_DIR}
+	# find /external/* -type d -exec git config --global --add safe.directory {} \;
+	# uv sync --frozen
+	# cd ${GPUDRIVE_DIR}
+	# uv run python ${GPUDRIVE_DIR}/build_gpudrive.py
+	# cd -
 
 # Function that runs the docker run command
 docker_run:
