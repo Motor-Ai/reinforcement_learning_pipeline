@@ -2,41 +2,6 @@
 
 This repository provides a reinforcement learning (RL) pipeline for autonomous driving research using the CARLA simulator.
 
-## Project Structure
-
-```
-.
-├── eval.py
-├── main.py
-├── requirements.txt
-├── train.py
-├── envs/
-│   ├── callbacks.py
-│   ├── carla_env.py
-│   ├── carla_env_render.py
-│   ├── configs/
-│   │   └── config.yaml
-│   ├── observation/
-│   │   ├── __init__.py
-│   │   ├── tr_costs.py
-│   │   ├── vector_BEV_observer.py
-│   │   └── decision_traffic_rules/
-│   │       ├── feature_indices.py
-│   │       ├── lanelet_data_extractor.py
-│   │       ├── lanelet_traffic_rules.py
-│   │       └── README.md
-├── media/
-├── models/
-│   ├── __init__.py
-│   ├── preprocess.py
-│   └── dipp_predictor_py/
-│       ├── __init__.py
-│       ├── dipp_carla.py
-│       └── dipp_predictor_utils.py
-├── saved_rl_models/
-│   ├── log.txt
-│   └── results.txt
-```
 
 ## Getting Started
 
@@ -60,6 +25,7 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
     cd <project folder>
     poetry config --local virtualenvs.in-project true
     poetry install
+    pip install carla==0.9.15
     ```
     Alternatively: create your virtual env manually and install dependencies using pip:
     ```bash

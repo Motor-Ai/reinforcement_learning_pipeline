@@ -1,29 +1,28 @@
 import os
-import yaml
-from src.envs.carla_env import CarlaGymEnv
-from src.envs.carla_env_render import MatplotlibAnimationRenderer
+
+import hydra
+from omegaconf import DictConfig
+
 from stable_baselines3 import A2C
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
-# Load configurations from YAML
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "src/envs/configs/config.yaml")
-with open(CONFIG_PATH, "r") as config_file:
-    config = yaml.safe_load(config_file)
+from src.envs.carla_env_render import MatplotlibAnimationRenderer
+from src.core.hydra import instantiate_frozen
 
-RENDER_CAMERA = config["RENDER_CAMERA"]
-SAVE_PATH = config["SAVE_PATH"]
 
-VECNORM_PATH = os.path.join(SAVE_PATH, "1.1.3.1/vec_normalize.pkl")
-#TODO: right now every new model is saved into the same dir, erasing the previous run. Should
-# make a new dir for every run and make eval load the latest dir by default.
+@hydra.main(version_base="1.3.2", config_path="config", config_name="eval")
+def eval(config: DictConfig):
 
-if __name__ == '__main__':
-    eval_env = DummyVecEnv([lambda: CarlaGymEnv(render_enabled=RENDER_CAMERA)])
-    eval_env = VecNormalize.load(VECNORM_PATH, eval_env)
+    vec_norm_path = os.path.join(config.save_path, "1.1.3.1/vec_normalize.pkl")
+    # TODO: right now every new model is saved into the same dir, erasing the previous run. Should
+    #  make a new dir for every run and make eval load the latest dir by default.
+
+    eval_env = DummyVecEnv([lambda: instantiate_frozen(config.env)])
+    eval_env = VecNormalize.load(vec_norm_path, eval_env)
     eval_env.training = False
     eval_env.norm_reward = False
 
-    best_model_path = os.path.join(SAVE_PATH, "1.1.3.1/best_model.zip")
+    best_model_path = os.path.join(config.save_path, "1.1.3.1/best_model.zip")
     print(f"Loading best model: {best_model_path}")
     model = A2C.load(best_model_path, env=eval_env)
 
@@ -33,6 +32,7 @@ if __name__ == '__main__':
         step_count = 0
 
         renderer = MatplotlibAnimationRenderer()
+
         step = 0
         while not done:
             action, _ = model.predict(obs, deterministic=True)
@@ -46,3 +46,7 @@ if __name__ == '__main__':
 
     eval_env.close()
     print("Environment closed.")
+
+
+if __name__ == '__main__':
+    eval()

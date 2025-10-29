@@ -32,9 +32,11 @@ class ActionManager:
         #TODO: these are placeholder values, rewrite with real limits
         max_acc, min_acc = 3.0, -3.0  # m/s^2
         max_lat_offset, min_lat_offset = 3.0, -3.0
-        self.action_space = spaces.Box(low=np.repeat(np.array([min_acc, min_lat_offset]), repeats=n_samples, axis=0),
-                                        high=np.repeat(np.array([max_acc, max_lat_offset]), repeats=n_samples, axis=0),
-                                        dtype=np.float32)
+        self.action_space = spaces.Box(
+            low=np.repeat(np.array([min_acc, min_lat_offset]), repeats=n_samples, axis=0),
+            high=np.repeat(np.array([max_acc, max_lat_offset]), repeats=n_samples, axis=0),
+            dtype=np.float32
+        )
         self.plan_time_range = [1,10,0.5] # [time_min, time_max, time_step]
         self.plan_dt = 0.1 # seconds
 
@@ -190,7 +192,6 @@ class ActionManager:
 
         # === Generate a B-spline path with 0.1m resolution ===
         x_arr, y_arr, yaw_arr, _ = calc_bspline_course_2(ref_x, ref_y, path_len, 0.1)
-        #print(f"Processed path to {len(x_arr)} points.")
 
         ego_vel_lon, ego_vel_lat = ego_state.velocity.x , ego_state.velocity.y
 
