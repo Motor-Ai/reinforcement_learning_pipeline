@@ -6,10 +6,10 @@ gpudrive_build:
 	$(MAKE) -C ${GPUDRIVE_DIR} gpudrive_build WORKSPACE_DIR=${GPUDRIVE_DIR}
 
 # Function that runs the docker run command
-# TODO(FU): In PR check if this breaks anything on my machine
+# TODO(ON): I have to add `-` `--runtime nvidia \` to the docker run command to use the GPU in the container.
+# may be solvable by fixing nvidia container toolkit.
 docker_run:
 	docker run --gpus all -it --rm --shm-size=20G \
-		--runtime nvidia \
 		-v ${PWD}:/workspace \
 		-v ${CARLA_ROOT}:/carla \
 		--network host \

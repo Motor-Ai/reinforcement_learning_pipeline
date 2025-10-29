@@ -10,6 +10,7 @@ dependencies = [
     "shapely>=2.1.2", # used in act_integration
     "stable-baselines3>=2.7.0",
     "tensorboard>=2.20.0",
+    "jaxlib==0.5.3",  # issue of gpudrive, see https://github.com/Emerge-Lab/gpudrive/issues/464
 ]
 
 
