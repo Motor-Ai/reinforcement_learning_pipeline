@@ -1,3 +1,4 @@
+from hydra.utils import get_class
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
@@ -12,7 +13,6 @@ def instantiate_frozen(cfg):
         raise ValueError("Missing _target_ in config")
 
     # Import and get target class/function
-    from hydra.utils import get_class
     target = get_class(cfg._target_)
 
     # Remove _target_ key

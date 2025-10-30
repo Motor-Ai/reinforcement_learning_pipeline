@@ -6,15 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 import gymnasium as gym
 from gymnasium import spaces
-import os
-import sys
 from typing import Tuple, Any
-
-# Expand the CARLA_ROOT environment variable correctly:
-carla_root = os.environ.get("CARLA_ROOT")
-if carla_root is None:
-    raise EnvironmentError("CARLA_ROOT environment variable is not set.")
-sys.path.append(os.path.join(carla_root, "PythonAPI", "carla"))
 
 from src.envs.reward.reward_manager import RewardManager
 from src.envs.utils import ego_to_global
@@ -28,6 +20,7 @@ from src.envs.observation.vector_BEV_observer import Vector_BEV_observer
 from src.envs.carla_env_render import MatplotlibAnimationRenderer
 from src.envs.observation.observation_manager import ObservationManager
 from src.envs.actions.action_manager import ActionManager, EgoState
+from config.env_config_classes import CarlaEnvConfig
 # pyright: reportAttributeAccessIssue=none
 
 
@@ -39,7 +32,7 @@ class CarlaGymEnv(gym.Env):
     """
     metadata = {"render.modes": ["human"]}
     
-    def __init__(self, config) -> None:
+    def __init__(self, config: CarlaEnvConfig) -> None:
         """
         Initialize the environment.
         
@@ -58,9 +51,7 @@ class CarlaGymEnv(gym.Env):
         self.distance_to_goal: float = 0.0
         self.prev_distance_to_goal: float
         self.collision_detected = False
-        self.episode_length = int(self.config.scene_duration / self.config.frequency)
         self.lane_invasions: list[carla.LaneInvasionEvent] = []
-        self.preprocess_observation = self.config.preprocess_observation
         self.observation: dict  #TODO: change to correct type
         self.global_route: np.ndarray
         self.ego_vehicle: carla.Vehicle
@@ -153,9 +144,7 @@ class CarlaGymEnv(gym.Env):
         # self.action_space = spaces.Box(low=5, high=10, shape=(2,), dtype=np.float32)
 
         if not self.config.mai_action_space:
-            self.num_maneuvers = self.config.num_actions  # Possible actions: 0, 1, 2, 3, 4
-            self.n_actions_per_maneuver = self.config.n_actions_per_maneuver
-            self.action_space = spaces.MultiDiscrete([self.num_maneuvers, self.n_actions_per_maneuver])
+            self.action_space = spaces.MultiDiscrete([self.config.num_actions, self.config.n_actions_per_maneuver])
         else:
             self.action_manager = ActionManager(n_samples = self.config.num_actions)
             self.action_space = self.action_manager.action_space
@@ -165,7 +154,7 @@ class CarlaGymEnv(gym.Env):
 
         self.observation_manager = ObservationManager(
             obs_keys=["ego", "neighbors", "map", "global_route"],
-            preprocess=self.preprocess_observation,
+            preprocess=self.config.preprocess_observation,
         )
         self.observation_space = self.observation_manager.observation_space
 
@@ -183,6 +172,10 @@ class CarlaGymEnv(gym.Env):
     #     np.random.seed(seed)
     #     torch.manual_seed(seed)
     #     return [seed]
+
+    @property
+    def episode_length(self) -> int:
+        return int(self.config.scene_duration / self.config.frequency)
 
     @property
     def ego_speed(self) -> float:
@@ -503,7 +496,7 @@ class CarlaGymEnv(gym.Env):
         goal_reached = self.distance_to_goal < self.goal_threshold
         info["goal_reached"] = goal_reached
         terminated = goal_reached # End episode if goal is reached
-        truncated = self.timestep >= self.config.scene_duration / self.config.frequency # End episode if time is up
+        truncated = (self.timestep >= self.episode_length) # End episode if time is up
 
         # End episode on collision
         if self.collision_detected:
@@ -608,8 +601,8 @@ class CarlaGymEnv(gym.Env):
         The first value corresponds to a maneuver (0 to NUM_MANEUVERS - 1),
         and the second value corresponds to a sub-action within that maneuver (0 to N_ACTION_PER_MANEUVER - 1).
         """
-        maneuver = np.random.randint(0, self.num_maneuvers)  # Random maneuver index
-        sub_action = np.random.randint(0, self.n_actions_per_maneuver)  # Random sub-action index
+        maneuver = np.random.randint(0, self.config.num_actions)  # Random maneuver index
+        sub_action = np.random.randint(0, self.config.n_actions_per_maneuver)  # Random sub-action index
 
         return np.array([maneuver, sub_action])
 
