@@ -15,4 +15,4 @@ dependencies = [
 
 
 [tool.uv.sources]
-gpudrive = { path = "src/envs/gpudrive", editable = true }
+gpudrive = { path = "external/gpudrive", editable = true }

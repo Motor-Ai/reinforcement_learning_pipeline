@@ -33,14 +33,19 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
 
 
 2. **Build gpudrive and the docker**  
-   Build the gpudrive library and install its python dependencies inside a virtual environment:
-    ```bash
-    make gpudrive_build
-    ```
-   Build the docker image:
-    ```bash
-    make docker_build
-    ```
+
+    1. Build the docker (if using VScode, try in an external terminal):
+        ```bash
+        make docker_build
+        ```
+    2. s
+        ```bash
+        make docker_run
+        ```
+    3. Then inside the docker container run:
+        ```bash
+        make gpudrive_build
+        ```
 
 ### Install CARLA
 
