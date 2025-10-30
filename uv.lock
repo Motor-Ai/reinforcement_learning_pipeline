@@ -318,7 +318,7 @@ wheels = [
 [[package]]
 name = "gpudrive"
 version = "0.4.0"
-source = { editable = "src/envs/gpudrive" }
+source = { editable = "external/gpudrive" }
 dependencies = [
     { name = "cmake" },
     { name = "gymnasium" },
@@ -1309,7 +1309,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "carla", specifier = "==0.9.16" },
-    { name = "gpudrive", editable = "src/envs/gpudrive" },
+    { name = "gpudrive", editable = "external/gpudrive" },
     { name = "hydra-core", specifier = ">=1.3.2" },
     { name = "jaxlib", specifier = "==0.5.3" },
     { name = "shapely", specifier = ">=2.1.2" },

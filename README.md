@@ -46,6 +46,10 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
         ```bash
         make gpudrive_build
         ```
+        You can now run python code with uv. The dependencies will install the first time you run, e.g.:
+        ```bash
+        uv run python external/gpudrive/baselines/ppo/ppo_sb3.py
+        ```
 
 ### Install CARLA
 
