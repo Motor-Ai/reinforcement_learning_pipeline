@@ -13,7 +13,7 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
 
 1. Clone the repo recursively:
     ```bash
-    git clone --recursive https://github.com/Motor-Ai/reinforcement_learning_pipeline.git
+    git clone --recursive git@github.com:Motor-Ai/mai-gpu-drive.git
     ```
     you can update GPUDrive later using:
     ```bash

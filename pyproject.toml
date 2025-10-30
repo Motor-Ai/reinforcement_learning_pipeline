@@ -2,7 +2,7 @@
 name = "reinforcement-learning-pipeline"
 version = "0.1.0"
 readme = "README.md"
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.11,<3.12"
 dependencies = [
     "carla==0.9.16",
     "gpudrive",

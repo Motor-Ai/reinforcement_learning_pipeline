@@ -40,6 +40,5 @@ RUN LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs/:$LD_LIBRARY_PATH
 WORKDIR /workspace
 
 ENV CARLA_ROOT="/carla/"
-ENV PYTHONPATH="/workspace/src/envs/gpudrive/:$PYTHONPATH"
 
 CMD ["/bin/bash"]
