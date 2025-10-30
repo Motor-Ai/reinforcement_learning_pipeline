@@ -1,5 +1,5 @@
 WORKSPACE_DIR := /workspace
-GPUDRIVE_DIR := $(WORKSPACE_DIR)/src/envs/gpudrive
+GPUDRIVE_DIR := $(WORKSPACE_DIR)/external/gpudrive
 
 # Function that builds the gpudrive code
 gpudrive_build:

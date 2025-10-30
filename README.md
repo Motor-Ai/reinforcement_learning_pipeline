@@ -25,24 +25,25 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
     ```bash
     curl -LsSf https://astral.sh/uv/install.sh | sh
     ```
-    then install the virtual env:
+    then install a virtual env:
     ```bash
     cd ./reinforcement_learning_pipeline
     uv sync
     ```
+    This last stage can be skipped if you only use a docker container. However, the venv is needed for static type checking.
 
 
 2. **Build gpudrive and the docker**  
 
-    1. Build the docker (if using VScode, try in an external terminal):
+    1. Build the docker container:
         ```bash
         make docker_build
         ```
-    2. s
+    2. Run the container:
         ```bash
         make docker_run
         ```
-    3. Then inside the docker container run:
+    3. Inside the container run:
         ```bash
         make gpudrive_build
         ```

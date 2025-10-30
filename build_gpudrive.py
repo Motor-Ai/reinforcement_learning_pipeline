@@ -20,7 +20,7 @@ def main():
     subprocess.check_call(
         [
             "cmake", 
-            "../src/envs/gpudrive",
+            "../external/gpudrive",
             "-DCMAKE_BUILD_TYPE=Release",
             "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
         ])
