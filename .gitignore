@@ -11,4 +11,9 @@ saved_rl_models/*
 .idea/
 data/
 
+# Ignore everything in cache directory, but keep the empty file.
+.cache/*
+!.cache/.empty
+
 outputs/
+build/

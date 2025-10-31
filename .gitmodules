@@ -1,0 +1,4 @@
+[submodule "gpudrive"]
+	path = external/gpudrive
+	url = git@github.com:Motor-Ai/mai-gpu-drive.git
+

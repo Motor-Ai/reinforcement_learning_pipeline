@@ -1,46 +1,77 @@
 # Reinforcement Learning
 
-This repository provides a reinforcement learning (RL) pipeline for autonomous driving research using the CARLA simulator.
-
+This repository provides a reinforcement learning (RL) pipeline for autonomous driving research using the CARLA and GPUDrive simulators.
 
 ## Getting Started
 
 ### Prerequisites
 
-- Python 3.10 (and higher?)
-- CARLA 0.9.15 (Download from [here](https://github.com/carla-simulator/carla/releases/tag/0.9.15/))
-- See `requirements.txt` for Python dependencies.
+- Python 3.11 (3.12 should also work)
+- CARLA 0.9.16 (Download from [here](https://github.com/carla-simulator/carla/releases/tag/0.9.16/))
 
 ### Installation
 
-1. Download and install [CARLA 0.9.15](https://github.com/carla-simulator/carla/releases/tag/0.9.15/). Set up the CARLA_ROOT variable to point to your CARLA directory, and add it to the PYTHONPATH:
+1. Clone the repo recursively:
     ```bash
-    echo 'export CARLA_ROOT="/path/to/my/CARLA_0.9.15"' >> ~/.bashrc
-    echo 'export PYTHONPATH="${CARLA_ROOT}/PythonAPI/carla/dist/carla-0.9.14-py3.7-linux-x86_64.egg"' >> ~/.bashrc
+    git clone --recursive git@github.com:Motor-Ai/reinforcement_learning_pipeline.git
+    ```
+    you can update GPUDrive later using:
+    ```bash
+    git submodule update --init --recursive
+    ```
+
+2. **Build gpudrive and the docker**  
+
+    1. Build the docker container:
+        ```bash
+        cd ./reinforcement_learning_pipeline
+        make docker_build
+        ```
+    2. Run the container:
+        ```bash
+        make docker_run
+        ```
+    3. Inside the container run:
+        ```bash
+        make gpudrive_build
+        ```
+        You can now run python code with uv. The dependencies will install the first time you run, e.g.:
+        ```bash
+        uv run python external/gpudrive/baselines/ppo/ppo_sb3.py
+        ```
+
+
+### Set up linting outside Docker (temporary, erase this section when we run vscode in docker):
+install uv:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+then install a virtual env:
+```bash
+uv sync
+```
+This can be skipped if you only use a docker container. However, the venv is needed for static type checking.
+
+
+### Install CARLA
+
+1. Download and install [CARLA 0.9.16](https://github.com/carla-simulator/carla/releases/tag/0.9.16/). Set up the CARLA_ROOT variable to point to your CARLA directory, and install carla on python:
+    ```bash
+    echo 'export CARLA_ROOT="/path/to/my/CARLA_0.9.16"' >> ~/.bashrc
     source ~/.bashrc
+    uv pip install ${CARLA_ROOT}/PythonAPI/carla/dist/carla-0.9.16-cp311-cp311-manylinux_2_31_x86_64.whl
     ```
-2. Using poetry: install poetry globally, then create venv and install dependencies inside the project folder:
-    ```bash
-    sudo apt install python3-poetry
-    cd <project folder>
-    poetry config --local virtualenvs.in-project true
-    poetry install
-    pip install carla==0.9.15
-    ```
-    Alternatively: create your virtual env manually and install dependencies using pip:
-    ```bash
-    pip install -r requirements.txt
-    ```
-3. Link the CARLA 'agents' lib by running:
+
+2. Link the CARLA 'agents' lib by running:
 
     ```bash
-    ln -s $CARLA_ROOT/PythonAPI/carla/agents/ .venv/lib/python3.10/site-packages/
+    ln -s $CARLA_ROOT/PythonAPI/carla/agents/ .venv/lib/python3.11/site-packages/
     ```
 
     replace `.venv` with the name of your virtual env dir.
 
 
-### Running the RL Pipeline
+### Running the RL Pipeline with CARLA
 
 To run the project, follow these steps:
 
@@ -53,18 +84,18 @@ To run the project, follow these steps:
     - `-quality-level=Low`: Sets the graphics quality to low for better performance.
 
 2. **Train or Evaluate the RL Agent**  
-    In a separate terminal, use the following commands:
-    - To train a model:
-      ```bash
-      python train.py
-      ```
-    - To evaluate a trained model:
-      ```bash
-      python eval.py
-      ```
-
-3. **Configuration**  
-    Adjust environment and training settings in `envs/configs/config.yaml` as needed.
+    Run the docker:
+    ```bash
+    make docker_run
+    ```
+    Run the training script:
+    ```bash
+    uv run python3 train.py
+    ```
+    Or the evaluation script:
+    ```bash
+    uv run python3 eval.py
+    ```
 
 ## Features
 
