@@ -83,7 +83,7 @@ To run the project, follow these steps:
     - `-RenderOffScreen`: Runs CARLA without rendering to a display (useful for headless servers).
     - `-quality-level=Low`: Sets the graphics quality to low for better performance.
 
-2. **Train or Evaluate the RL Agent**
+2. **Train or Evaluate the RL Agent**  
     Run the docker:
     ```bash
     make docker_run
