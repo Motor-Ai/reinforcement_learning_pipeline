@@ -13,30 +13,18 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
 
 1. Clone the repo recursively:
     ```bash
-    git clone --recursive git@github.com:Motor-Ai/mai-gpu-drive.git
+    git clone --recursive git@github.com:Motor-Ai/reinforcement_learning_pipeline.git
     ```
     you can update GPUDrive later using:
     ```bash
     git submodule update --init --recursive
     ```
 
-
-2. Install uv:
-    ```bash
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    ```
-    then install a virtual env:
-    ```bash
-    cd ./reinforcement_learning_pipeline
-    uv sync
-    ```
-    This last stage can be skipped if you only use a docker container. However, the venv is needed for static type checking.
-
-
 2. **Build gpudrive and the docker**  
 
     1. Build the docker container:
         ```bash
+        cd ./reinforcement_learning_pipeline
         make docker_build
         ```
     2. Run the container:
@@ -51,6 +39,19 @@ This repository provides a reinforcement learning (RL) pipeline for autonomous d
         ```bash
         uv run python external/gpudrive/baselines/ppo/ppo_sb3.py
         ```
+
+
+### Set up linting outside Docker (temporary, erase this section when we run vscode in docker):
+install uv:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+then install a virtual env:
+```bash
+uv sync
+```
+This can be skipped if you only use a docker container. However, the venv is needed for static type checking.
+
 
 ### Install CARLA
 
