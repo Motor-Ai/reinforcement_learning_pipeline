@@ -7,6 +7,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y -q --no-install-recommends \
 	software-properties-common \
         build-essential \
+        make \
         cmake \
         git \
         curl \
@@ -32,7 +33,8 @@ RUN apt-get update && apt-get install -y -q --no-install-recommends \
 # Install uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/bin" sh
 
-ENV MADRONA_MWGPU_KERNEL_CACHE=./rl_pipeline_cache
+# Define sim cache
+ENV MADRONA_MWGPU_KERNEL_CACHE=./.cache/gpudrive_cache
 
 RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1
 RUN LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs/:$LD_LIBRARY_PATH
